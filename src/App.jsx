@@ -440,7 +440,7 @@ const saveDismissed = (d) => {
 
 // ── AI PARSE ──────────────────────────────────────────────────────────────────
 async function parseJobWithAI(text) {
-  const r = await fetch("https://api.anthropic.com/v1/messages",{
+  const r = await fetch("/api/chat",{
     method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,
       messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with keys: client (string), type (string), amount (number), date (string), phone (string), status (unpaid/quoted/scheduled/paid/overdue). Voice note: "${text}"`}]
