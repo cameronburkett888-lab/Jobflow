@@ -440,8 +440,8 @@ const buildRecurringAlerts = (jobs) => {
 async function parseJobWithAI(text) {
   const r = await fetch("/api/chat",{
     method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,
-      messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with keys: client, type, amount (number only), date, status (one of: unpaid/quoted/scheduled/paid/overdue). Voice note: "${text}"`}]
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,
+      messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (e.g. Apr 20), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-28 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string). Voice note: "${text}"`}]
     })
   });
   const d = await r.json();
@@ -815,7 +815,7 @@ export default function App() {
   };
 
   const confirmSave = () => {
-    setJobs(prev=>[{id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:parsed.date||todayStr(),status:parsed.status||"unpaid",phone:"",recurring:"none"}, ...prev]);
+    setJobs(prev=>[{id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:parsed.date||todayStr(),status:parsed.status||"unpaid",phone:parsed.phone||"",recurring:parsed.recurring||"none",recurringDay:parsed.recurringDay||"",recurringTime:parsed.recurringTime||"",paymentDue:parsed.paymentDue||""}, ...prev]);
     setStage(null); setTranscript(""); setParsed(null); setTab("Jobs");
   };
 
@@ -1225,9 +1225,51 @@ export default function App() {
             <div className="mhandle"/>
             <div className="mtitle" style={{color:"#22c55e"}}><CheckIcon c="#22c55e" s={20}/> {t.confirmJob}</div>
             <div className="msub">{t.aiPulled}</div>
-            {[{k:"client",l:t.clientName},{k:"type",l:t.jobType},{k:"amount",l:t.amountDollar},{k:"date",l:t.date}].map(f=>(
-              <div key={f.k}><label className="flabel">{f.l}</label><input className="finput" value={parsed[f.k]||""} onChange={e=>setParsed(p=>({...p,[f.k]:e.target.value}))}/></div>
-            ))}
+            <label className="flabel">{t.clientName}</label>
+            <input className="finput" value={parsed.client||""} onChange={e=>setParsed(p=>({...p,client:e.target.value}))}/>
+            <label className="flabel">{t.jobType}</label>
+            <input className="finput" value={parsed.type||""} onChange={e=>setParsed(p=>({...p,type:e.target.value}))}/>
+            <div className="frow">
+              <div><label className="flabel">{t.amountDollar}</label><input className="finput" type="number" value={parsed.amount||""} onChange={e=>setParsed(p=>({...p,amount:e.target.value}))}/></div>
+              <div><label className="flabel">{t.date}</label><input className="finput" value={parsed.date||""} onChange={e=>setParsed(p=>({...p,date:e.target.value}))}/></div>
+            </div>
+            <label className="flabel">{t.phone}</label>
+            <input className="finput" placeholder="(555) 000-0000" value={parsed.phone||""} onChange={e=>setParsed(p=>({...p,phone:e.target.value}))}/>
+            <label className="flabel">{t.status}</label>
+            <select className="finput" value={parsed.status||"unpaid"} onChange={e=>setParsed(p=>({...p,status:e.target.value}))}>
+              {STATUSES.map(s=><option key={s} value={s}>{t.statusLabels[s]||s}</option>)}
+            </select>
+            <label className="flabel">{t.recurringInterval}</label>
+            <select className="finput" value={parsed.recurring||"none"} onChange={e=>setParsed(p=>({...p,recurring:e.target.value,recurringDay:"",recurringTime:""}))}>
+              <option value="none">{t.noRecurring}</option>
+              <option value="weekly">{t.weekly}</option>
+              <option value="biweekly">{t.biweekly}</option>
+              <option value="monthly">{t.monthly}</option>
+            </select>
+            {parsed.recurring&&parsed.recurring!=="none"&&(
+              <div className="frow">
+                <div>
+                  <label className="flabel">{parsed.recurring==="monthly"?t.dayOfMonth:t.dayOfWeek}</label>
+                  {parsed.recurring==="monthly"?(
+                    <select className="finput" value={parsed.recurringDay||""} onChange={e=>setParsed(p=>({...p,recurringDay:e.target.value}))}>
+                      <option value="">-- Day --</option>
+                      {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                    </select>
+                  ):(
+                    <select className="finput" value={parsed.recurringDay||""} onChange={e=>setParsed(p=>({...p,recurringDay:e.target.value}))}>
+                      <option value="">-- Day --</option>
+                      {t.days.map((d,i)=><option key={i} value={i}>{d}</option>)}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="flabel">{t.recurringTime}</label>
+                  <input className="finput" type="time" value={parsed.recurringTime||""} onChange={e=>setParsed(p=>({...p,recurringTime:e.target.value}))}/>
+                </div>
+              </div>
+            )}
+            <label className="flabel">{t.paymentDueDate}</label>
+            <input className="finput" type="date" value={parsed.paymentDue||""} onChange={e=>setParsed(p=>({...p,paymentDue:e.target.value}))}/>
             <button className="fbtn" onClick={confirmSave}>{t.saveJob}</button>
             <button className="fbtn-sec" onClick={()=>{setStage(null);setParsed(null);}}>{t.cancel}</button>
           </div></div>
