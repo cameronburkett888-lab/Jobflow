@@ -26,6 +26,10 @@ const HistoryIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewB
 const RestoreIcon = ({c="currentColor",s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>;
 const RepeatIcon = ({c="currentColor",s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
 const ArrowDownIcon = ({c="currentColor",s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>;
+const BuildingIcon = ({c="currentColor",s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
+const MapPinIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+const BadgeIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
+const SaveIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
 
 // ── TRANSLATIONS ──────────────────────────────────────────────────────────────
 const LANG = {
@@ -69,11 +73,11 @@ const LANG = {
     currentPlan:"Current Plan", proPlan:"Pro Plan – $29/mo",
     cancelSubscription:"Cancel Subscription",
     cancelQ:"Cancel subscription?",
-    cancelMsg:"You'll lose access to JobFlow at the end of your current billing period.",
+    cancelMsg:"You'll lose access to Tracket at the end of your current billing period.",
     keepPlan:"Keep My Plan", yesCancelSub:"Yes, Cancel",
     accessibility:"Accessibility & Language",
     language:"Language", english:"English", spanish:"Español",
-    appVersion:"TradeStack v10.0",
+    appVersion:"Tracket v11.0",
     signOutQ:"Sign out?",
     signOutMsg:"You'll need to log back in to access your jobs and data.",
     signOutYes:"Sign Out",
@@ -95,6 +99,13 @@ const LANG = {
     moveHistTitle:"Move to History", moveHistMsg:"Job will be archived. You can restore it anytime.",
     deleteOrArchive:"What would you like to do with this job?",
     paymentDueDate:"Payment Due Date (optional)",
+    editProfileTitle:"Edit Profile", saveProfile:"Save Profile",
+    yourName:"Your Name", bizPhone:"Business Phone", cityState:"City / State", licenseNum:"License # (optional)",
+    profileSaved:"Profile Saved!", profileSavedMsg:"Your business info has been updated.",
+    onboardingWelcome:"Welcome to Tracket 👋",
+    onboardingSubtitle:"Set up your business profile so your invoices look professional from day one.",
+    onboardingSkip:"Skip for now",
+    onboardingFinish:"Let's Go →",
   },
   es: {
     jobs:"Trabajos", alerts:"Alertas", contacts:"Contactos",
@@ -140,7 +151,7 @@ const LANG = {
     keepPlan:"Mantener Mi Plan", yesCancelSub:"Sí, Cancelar",
     accessibility:"Accesibilidad e Idioma",
     language:"Idioma", english:"English", spanish:"Español",
-    appVersion:"TradeStack v10.0",
+    appVersion:"Tracket v11.0",
     signOutQ:"¿Cerrar sesión?",
     signOutMsg:"Necesitarás iniciar sesión nuevamente.",
     signOutYes:"Cerrar Sesión",
@@ -162,6 +173,13 @@ const LANG = {
     moveHistTitle:"Mover al Historial", moveHistMsg:"El trabajo se archivará. Puedes restaurarlo cuando quieras.",
     deleteOrArchive:"¿Qué quieres hacer con este trabajo?",
     paymentDueDate:"Fecha Límite de Pago (opcional)",
+    editProfileTitle:"Editar Perfil", saveProfile:"Guardar Perfil",
+    yourName:"Tu Nombre", bizPhone:"Teléfono del Negocio", cityState:"Ciudad / Estado", licenseNum:"Licencia # (opcional)",
+    profileSaved:"¡Perfil Guardado!", profileSavedMsg:"Tu información de negocio ha sido actualizada.",
+    onboardingWelcome:"¡Bienvenido a Tracket 👋",
+    onboardingSubtitle:"Configura tu perfil de negocio para que tus facturas se vean profesionales.",
+    onboardingSkip:"Omitir por ahora",
+    onboardingFinish:"¡Vamos →",
   }
 };
 
@@ -378,9 +396,50 @@ select.finput{cursor:pointer}
 
 /* RECURRING BADGE */
 .recurring-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#a855f7;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);border-radius:10px;padding:2px 7px;margin-top:4px}
+
+/* ONBOARDING FLOW */
+.ob-overlay{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.ob-logo{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.ob-logo span{color:var(--accent)}
+.ob-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:420px}
+.ob-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px}
+.ob-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.ob-progress{display:flex;gap:6px;margin-bottom:24px}
+.ob-dot{height:4px;border-radius:2px;flex:1;background:var(--border);transition:background .3s}
+.ob-dot.done{background:var(--accent)}
+.ob-field{margin-bottom:16px}
+.ob-field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:6px}
+.ob-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif}
+.ob-input:focus{border-color:var(--accent);outline:none}
+.ob-input::placeholder{color:var(--muted)}
+.ob-logo-upload{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer}
+.ob-logo-preview{width:44px;height:44px;border-radius:10px;background:var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.ob-logo-preview img{width:100%;height:100%;object-fit:cover}
+.ob-logo-text{font-size:13px;font-weight:600;color:var(--muted)}
+.ob-logo-sub{font-size:11px;color:var(--muted);opacity:.7;margin-top:1px}
+.ob-btns{display:flex;flex-direction:column;gap:8px;margin-top:24px}
+.ob-skip{background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;text-align:center;padding:4px;font-family:'Barlow',sans-serif;text-decoration:underline}
+.ob-skip:hover{color:var(--text)}
+
+/* SETTINGS EDIT PROFILE SCREEN */
+.profile-edit-screen{padding:0 20px 20px}
+.profile-edit-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#e08800);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#0f1117;margin:0 auto 16px;cursor:pointer;position:relative;overflow:hidden}
+.profile-edit-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.profile-edit-avatar-hint{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);font-size:9px;color:#fff;text-align:center;padding:3px 0;font-weight:600}
+.profile-edit-back{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;padding:0;margin-bottom:16px}
+.profile-edit-back:hover{color:var(--text)}
 `;
 
-const SEED = [
+const fmtPhone = (v) => {
+  const d = v.replace(/\D/g,"").slice(0,10);
+  if(d.length<4) return d;
+  if(d.length<7) return `(${d.slice(0,3)}) ${d.slice(3)}`;
+  return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+};
+
+const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+
+
   {id:1,client:"Dave Martinez",  type:"HVAC Install",    amount:3200, status:"unpaid",    date:"Mar 12", phone:"(555) 210-1234", recurring:null},
   {id:2,client:"Brian Kowalski", type:"Panel Upgrade",   amount:1850, status:"paid",      date:"Mar 5",  phone:"",               recurring:null},
   {id:3,client:"Greenway Plumbing",type:"Water Heater",  amount:740,  status:"quoted",    date:"Mar 18", phone:"(555) 330-9988", recurring:"monthly"},
@@ -450,13 +509,30 @@ async function parseJobWithAI(text) {
 }
 
 // ── PDF INVOICE ───────────────────────────────────────────────────────────────
-function InvoicePreview({job}) {
+function InvoicePreview({job, profile}) {
   const sc = {paid:"#22c55e",unpaid:"#ef4444",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"};
   const c = sc[job.status]||"#6b7280";
+  const bizName = profile?.businessName || "Tracket Pro";
+  const ownerName = profile?.ownerName || "";
+  const bizPhone = profile?.phone || "";
+  const bizEmail = profile?.email || "";
+  const bizLocation = profile?.city && profile?.state ? `${profile.city}, ${profile.state}` : (profile?.city || profile?.state || "");
+  const bizLicense = profile?.license || "";
   return (
     <div className="pdf-preview">
       <div className="pdf-header">
-        <div><div className="pdf-logo">Trade<span>Stack</span></div><div style={{fontSize:11,color:"#999",marginTop:2}}>Professional Services</div></div>
+        <div>
+          {profile?.logo
+            ? <img src={profile.logo} alt="logo" style={{height:44,maxWidth:120,objectFit:"contain",borderRadius:6,marginBottom:4}}/>
+            : <div className="pdf-logo">Trac<span style={{color:"#f5a623"}}>ket</span></div>
+          }
+          <div style={{fontSize:12,fontWeight:700,color:"#111",marginTop:2}}>{bizName}</div>
+          {ownerName && <div style={{fontSize:11,color:"#888"}}>{ownerName}</div>}
+          {bizPhone && <div style={{fontSize:11,color:"#888"}}>{bizPhone}</div>}
+          {bizEmail && <div style={{fontSize:11,color:"#888"}}>{bizEmail}</div>}
+          {bizLocation && <div style={{fontSize:11,color:"#888"}}>{bizLocation}</div>}
+          {bizLicense && <div style={{fontSize:11,color:"#888"}}>Lic# {bizLicense}</div>}
+        </div>
         <div className="pdf-inv-num"><div className="pdf-inv-title">{invNum(job.id)}</div><div style={{marginTop:4}}>Date: {job.date||todayStr()}</div></div>
       </div>
       <div className="pdf-row" style={{marginBottom:20}}>
@@ -464,15 +540,154 @@ function InvoicePreview({job}) {
         <div className="pdf-section"><div className="pdf-label">Status</div><span className="pdf-status-badge" style={{background:`${c}18`,color:c,border:`1px solid ${c}44`}}>{job.status}</span></div>
       </div>
       <div className="pdf-line"><span style={{fontWeight:600}}>{job.type}</span><span>{fmt(job.amount)}</span></div>
+      {job.paymentDue&&<div style={{fontSize:11,color:"#888",padding:"6px 0"}}>Payment Due: {job.paymentDue}</div>}
       <div className="pdf-total"><span>Total Due</span><span>{fmt(job.amount)}</span></div>
-      <div className="pdf-footer">Generated by TradeStack · Thank you for your business!</div>
+      <div className="pdf-footer">Generated by Tracket · Thank you for your business!</div>
+    </div>
+  );
+}
+
+// ── ONBOARDING FLOW ───────────────────────────────────────────────────────────
+function OnboardingFlow({onComplete, t}) {
+  const [step, setStep] = useState(0);
+  const [profile, setProfile] = useState({ownerName:"",businessName:"",phone:"",email:"",city:"",state:"",license:"",logo:""});
+  const logoRef = useRef(null);
+
+  const steps = [
+    {
+      icon:"👤", title:"What's your name?", subtitle:"We'll use this on your invoices.",
+      field:"ownerName", placeholder:"e.g. Cameron Burke", label:"Your Name",
+    },
+    {
+      icon:"🏢", title:"Your business name?", subtitle:"This appears at the top of every invoice.",
+      field:"businessName", placeholder:"e.g. Burke Pressure Washing", label:"Business Name",
+    },
+    {
+      icon:"📞", title:"Best phone number?", subtitle:"Clients see this on invoices.",
+      field:"phone", placeholder:"(919) 000-0000", label:"Phone Number", type:"tel",
+    },
+    {
+      icon:"📧", title:"Your email address?", subtitle:"Used for sending invoices.",
+      field:"email", placeholder:"you@example.com", label:"Email Address", type:"email",
+    },
+    { icon:"📍", title:"Where are you based?", subtitle:"Shows your location on invoices.", field:"__citystate__" },
+    {
+      icon:"🪪", title:"License number?", subtitle:"Optional — builds trust with clients.",
+      field:"license", placeholder:"e.g. EC-12345 (optional)", label:"License #",
+    },
+  ];
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setProfile(p=>({...p, logo:ev.target.result}));
+    reader.readAsDataURL(file);
+  };
+
+  const isLast = step === steps.length;
+  const cur = steps[step];
+  const totalSteps = steps.length + 1;
+
+  const handleChange = (field, value) => {
+    if(field === "phone") {
+      setProfile(p=>({...p, phone: fmtPhone(value)}));
+    } else {
+      setProfile(p=>({...p, [field]: value}));
+    }
+  };
+
+  return (
+    <div className="ob-overlay">
+      <div style={{marginBottom:20,textAlign:"center"}}>
+        <div className="ob-logo">Trac<span>ket</span></div>
+      </div>
+      <div className="ob-card">
+        <div className="ob-progress">
+          {Array.from({length:totalSteps},(_,i)=>(
+            <div key={i} className={`ob-dot ${i<=step?"done":""}`}/>
+          ))}
+        </div>
+
+        {!isLast ? (
+          <>
+            <div style={{fontSize:28,marginBottom:8}}>{cur.icon}</div>
+            <div className="ob-title">{cur.title}</div>
+            <div className="ob-sub">{cur.subtitle}</div>
+
+            {cur.field === "__citystate__" ? (
+              <div>
+                <div className="ob-field">
+                  <label>City</label>
+                  <input className="ob-input" type="text" placeholder="e.g. Bear Creek" value={profile.city} onChange={e=>handleChange("city",e.target.value)} autoFocus/>
+                </div>
+                <div className="ob-field" style={{marginTop:10}}>
+                  <label>State</label>
+                  <select className="ob-input" value={profile.state} onChange={e=>handleChange("state",e.target.value)} style={{cursor:"pointer"}}>
+                    <option value="">-- Select State --</option>
+                    {US_STATES.map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="ob-field">
+                <label>{cur.label}</label>
+                <input
+                  className="ob-input"
+                  type={cur.type||"text"}
+                  placeholder={cur.placeholder}
+                  value={profile[cur.field]}
+                  onChange={e=>handleChange(cur.field, e.target.value)}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <div className="ob-btns">
+              <button className="fbtn" onClick={()=>setStep(s=>s+1)}>
+                {step<steps.length-1?"Continue →":"Next →"}
+              </button>
+              {step>0&&<button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>← Back</button>}
+              <button className="ob-skip" onClick={()=>onComplete(profile)}>Skip setup</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{fontSize:28,marginBottom:8}}>🖼️</div>
+            <div className="ob-title">Add a logo? (Optional)</div>
+            <div className="ob-sub">Upload your business logo to appear on invoices. You can always add it later in Settings.</div>
+            <input type="file" ref={logoRef} accept="image/*" style={{display:"none"}} onChange={handleLogoUpload}/>
+            <div className="ob-logo-upload" onClick={()=>logoRef.current?.click()}>
+              <div className="ob-logo-preview">
+                {profile.logo
+                  ? <img src={profile.logo} alt="logo"/>
+                  : <span style={{fontSize:20}}>📷</span>
+                }
+              </div>
+              <div>
+                <div className="ob-logo-text">{profile.logo?"Logo uploaded ✓":"Tap to upload logo"}</div>
+                <div className="ob-logo-sub">PNG, JPG or SVG recommended</div>
+              </div>
+            </div>
+            <div className="ob-btns">
+              <button className="fbtn" onClick={()=>onComplete(profile)}>{t.onboardingFinish}</button>
+              <button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>← Back</button>
+              <button className="ob-skip" onClick={()=>onComplete(profile)}>{t.onboardingSkip}</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
 // ── SETTINGS PANEL ────────────────────────────────────────────────────────────
-function SettingsPanel({onClose, lang, setLang, t}) {
+function SettingsPanel({onClose, lang, setLang, t, profile, onSaveProfile}) {
   const [destConfirm, setDestConfirm] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [draft, setDraft] = useState({...profile});
+  const logoRef = useRef(null);
+
   const handleSignOut = () => setDestConfirm({type:"signout"});
   const handleDelete  = () => setDestConfirm({type:"delete"});
   const handleCancel  = () => setDestConfirm({type:"cancel"});
@@ -487,90 +702,156 @@ function SettingsPanel({onClose, lang, setLang, t}) {
     cancel: {icon:"⚠️",q:t.cancelQ,      msg:t.cancelMsg,       yes:t.yesCancelSub,btnClass:"fbtn-danger"},
   }[destConfirm.type] : null;
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setDraft(p=>({...p, logo:ev.target.result}));
+    reader.readAsDataURL(file);
+  };
+
+  const avatarInitials = profile.businessName
+    ? profile.businessName.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()
+    : profile.ownerName
+    ? profile.ownerName.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()
+    : "ME";
+
   return (
     <div className="settings-panel">
       <div className="settings-backdrop" onClick={onClose}/>
       <div className="settings-sheet">
         <div className="settings-hdr">
-          <div className="settings-title">{t.settings}</div>
-          <button className="settings-close" onClick={onClose}><XIcon s={16}/></button>
+          <div className="settings-title">{editingProfile ? t.editProfileTitle : t.settings}</div>
+          <button className="settings-close" onClick={editingProfile?()=>setEditingProfile(false):onClose}><XIcon s={16}/></button>
         </div>
         <div style={{height:16}}/>
-        <div className="settings-screen">
-          <div className="settings-section">
-            <div className="settings-group">
-              <div className="settings-profile">
-                <div className="settings-avatar">JD</div>
-                <div><div className="settings-name">John's Electric</div><div className="settings-email">john@johnselectric.com</div></div>
+
+        {editingProfile ? (
+          /* ── EDIT PROFILE SCREEN ── */
+          <div className="profile-edit-screen">
+            <input type="file" ref={logoRef} accept="image/*" style={{display:"none"}} onChange={handleLogoUpload}/>
+            <div className="profile-edit-avatar" onClick={()=>logoRef.current?.click()}>
+              {draft.logo
+                ? <img src={draft.logo} alt="logo"/>
+                : avatarInitials
+              }
+              <div className="profile-edit-avatar-hint">📷 change</div>
+            </div>
+            {[
+              {key:"ownerName",   label:t.yourName,     placeholder:"Your full name",        type:"text"},
+              {key:"businessName",label:t.businessName, placeholder:"Your business name",     type:"text"},
+              {key:"phone",       label:t.bizPhone,     placeholder:"(555) 000-0000",         type:"tel"},
+              {key:"email",       label:t.emailAddress, placeholder:"you@example.com",        type:"email"},
+              {key:"license",     label:t.licenseNum,   placeholder:"e.g. EC-12345",          type:"text"},
+            ].map(({key,label,placeholder,type})=>(
+              <div key={key} style={{marginBottom:14}}>
+                <label className="flabel">{label}</label>
+                <input className="finput" type={type} placeholder={placeholder} value={draft[key]||""}
+                  onChange={e=>setDraft(p=>({...p,[key]: key==="phone" ? fmtPhone(e.target.value) : e.target.value}))}/>
               </div>
-              <div className="settings-row" onClick={()=>{}}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(245,166,35,.1)"}}><UserCircleIcon c="var(--accent)" s={16}/></div>
-                  <div><div className="settings-row-label">{t.editProfile}</div><div className="settings-row-sub">{t.businessName}, {t.emailAddress}</div></div>
+            ))}
+            <div style={{marginBottom:14}}>
+              <label className="flabel">City</label>
+              <input className="finput" type="text" placeholder="e.g. Bear Creek" value={draft.city||""} onChange={e=>setDraft(p=>({...p,city:e.target.value}))}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <label className="flabel">State</label>
+              <select className="finput" value={draft.state||""} onChange={e=>setDraft(p=>({...p,state:e.target.value}))} style={{cursor:"pointer"}}>
+                <option value="">-- Select State --</option>
+                {US_STATES.map(s=><option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <button className="fbtn" style={{marginTop:8}} onClick={()=>{onSaveProfile(draft);setEditingProfile(false);}}>
+              <SaveIcon c="#0f1117" s={15}/> {t.saveProfile}
+            </button>
+            <button className="fbtn-sec" onClick={()=>{setDraft({...profile});setEditingProfile(false);}}>{t.cancel}</button>
+          </div>
+        ) : (
+          /* ── MAIN SETTINGS SCREEN ── */
+          <div className="settings-screen">
+            <div className="settings-section">
+              <div className="settings-group">
+                <div className="settings-profile">
+                  <div className="settings-avatar">
+                    {profile.logo
+                      ? <img src={profile.logo} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"50%"}}/>
+                      : avatarInitials
+                    }
+                  </div>
+                  <div>
+                    <div className="settings-name">{profile.businessName||"Your Business"}</div>
+                    <div className="settings-email">{profile.email||"Tap Edit Profile to set up"}</div>
+                  </div>
                 </div>
-                <ChevronRightIcon c="var(--muted)"/>
+                <div className="settings-row" onClick={()=>{setDraft({...profile});setEditingProfile(true);}}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(245,166,35,.1)"}}><UserCircleIcon c="var(--accent)" s={16}/></div>
+                    <div><div className="settings-row-label">{t.editProfile}</div><div className="settings-row-sub">{t.businessName}, {t.emailAddress}</div></div>
+                  </div>
+                  <ChevronRightIcon c="var(--muted)"/>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="settings-section">
-            <div className="settings-section-label">{t.subscription}</div>
-            <div className="settings-group">
-              <div className="settings-row" style={{cursor:"default"}}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(245,166,35,.1)"}}><CreditCardIcon c="var(--accent)" s={16}/></div>
-                  <div><div className="settings-row-label">{t.currentPlan}</div><div className="settings-row-sub">{t.proPlan}</div></div>
+            <div className="settings-section">
+              <div className="settings-section-label">{t.subscription}</div>
+              <div className="settings-group">
+                <div className="settings-row" style={{cursor:"default"}}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(245,166,35,.1)"}}><CreditCardIcon c="var(--accent)" s={16}/></div>
+                    <div><div className="settings-row-label">{t.currentPlan}</div><div className="settings-row-sub">{t.proPlan}</div></div>
+                  </div>
+                  <span className="plan-badge">PRO</span>
                 </div>
-                <span className="plan-badge">PRO</span>
-              </div>
-              <div className="settings-row danger" onClick={handleCancel}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(239,68,68,.1)"}}><XIcon c="var(--red)" s={16}/></div>
-                  <div><div className="settings-row-label">{t.cancelSubscription}</div></div>
-                </div>
-                <ChevronRightIcon c="var(--red)"/>
-              </div>
-            </div>
-          </div>
-
-          <div className="settings-section">
-            <div className="settings-section-label">{t.accessibility}</div>
-            <div className="settings-group">
-              <div className="settings-row" style={{cursor:"default"}}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(59,130,246,.1)"}}><span style={{fontSize:14}}>🌐</span></div>
-                  <div><div className="settings-row-label">{t.language}</div></div>
-                </div>
-                <div className="lang-toggle">
-                  <button className={`lang-opt ${lang==="en"?"active":""}`} onClick={()=>setLang("en")}>{t.english}</button>
-                  <button className={`lang-opt ${lang==="es"?"active":""}`} onClick={()=>setLang("es")}>{t.spanish}</button>
+                <div className="settings-row danger" onClick={handleCancel}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(239,68,68,.1)"}}><XIcon c="var(--red)" s={16}/></div>
+                    <div><div className="settings-row-label">{t.cancelSubscription}</div></div>
+                  </div>
+                  <ChevronRightIcon c="var(--red)"/>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="settings-section">
-            <div className="settings-section-label">{t.account}</div>
-            <div className="settings-group">
-              <div className="settings-row" onClick={handleSignOut}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(107,114,128,.1)"}}><LogOutIcon c="var(--muted)" s={16}/></div>
-                  <div className="settings-row-label">{t.signOut}</div>
+            <div className="settings-section">
+              <div className="settings-section-label">{t.accessibility}</div>
+              <div className="settings-group">
+                <div className="settings-row" style={{cursor:"default"}}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(59,130,246,.1)"}}><span style={{fontSize:14}}>🌐</span></div>
+                    <div><div className="settings-row-label">{t.language}</div></div>
+                  </div>
+                  <div className="lang-toggle">
+                    <button className={`lang-opt ${lang==="en"?"active":""}`} onClick={()=>setLang("en")}>{t.english}</button>
+                    <button className={`lang-opt ${lang==="es"?"active":""}`} onClick={()=>setLang("es")}>{t.spanish}</button>
+                  </div>
                 </div>
-                <ChevronRightIcon c="var(--muted)"/>
-              </div>
-              <div className="settings-row danger" onClick={handleDelete}>
-                <div className="settings-row-left">
-                  <div className="settings-row-icon" style={{background:"rgba(239,68,68,.1)"}}><TrashIcon c="var(--red)" s={16}/></div>
-                  <div><div className="settings-row-label">{t.deleteAccount}</div></div>
-                </div>
-                <ChevronRightIcon c="var(--red)"/>
               </div>
             </div>
-          </div>
 
-          <div className="version-text">{t.appVersion}</div>
-        </div>
+            <div className="settings-section">
+              <div className="settings-section-label">{t.account}</div>
+              <div className="settings-group">
+                <div className="settings-row" onClick={handleSignOut}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(107,114,128,.1)"}}><LogOutIcon c="var(--muted)" s={16}/></div>
+                    <div className="settings-row-label">{t.signOut}</div>
+                  </div>
+                  <ChevronRightIcon c="var(--muted)"/>
+                </div>
+                <div className="settings-row danger" onClick={handleDelete}>
+                  <div className="settings-row-left">
+                    <div className="settings-row-icon" style={{background:"rgba(239,68,68,.1)"}}><TrashIcon c="var(--red)" s={16}/></div>
+                    <div><div className="settings-row-label">{t.deleteAccount}</div></div>
+                  </div>
+                  <ChevronRightIcon c="var(--red)"/>
+                </div>
+              </div>
+            </div>
+
+            <div className="version-text">{t.appVersion}</div>
+          </div>
+        )}
 
         {destConfirm && destCopy && (
           <div className="dest-overlay" onClick={()=>setDestConfirm(null)}>
@@ -592,7 +873,7 @@ function SettingsPanel({onClose, lang, setLang, t}) {
 function OnboardingEmpty({onAddJob, t}) {
   return (
     <div className="onboarding-empty">
-      <div className="onboarding-title">Welcome to TradeStack 👋</div>
+      <div className="onboarding-title">Welcome to Tracket 👋</div>
       <div className="onboarding-sub">You don't have any jobs yet.<br/>Here's how to add your first one:</div>
 
       <div className="onboarding-hint" style={{width:"100%"}}>
@@ -639,14 +920,34 @@ export default function App() {
   const [tab, setTab] = useState("Jobs");
   const [lang, setLang] = useState("en");
   const [showSettings, setShowSettings] = useState(false);
-  const [jobs, setJobs] = useState(SEED);
-  const [jobHistory, setJobHistory] = useState([]);
+  const [jobs, setJobs] = useState(() => {
+    try { const s = localStorage.getItem("tracket_jobs"); return s ? JSON.parse(s) : SEED; } catch { return SEED; }
+  });
+  const [jobHistory, setJobHistory] = useState(() => {
+    try { const s = localStorage.getItem("tracket_history"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
   const [showHistory, setShowHistory] = useState(false);
   const [dismissed, setDismissed] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [jobFilter, setJobFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [pdfJob, setPdfJob] = useState(null);
+
+  const defaultProfile = {ownerName:"",businessName:"",phone:"",email:"",city:"",state:"",license:"",logo:""};
+  const [businessProfile, setBusinessProfile] = useState(() => {
+    try { const s = localStorage.getItem("tracket_profile"); return s ? JSON.parse(s) : defaultProfile; } catch { return defaultProfile; }
+  });
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem("tracket_onboarded"); } catch { return true; }
+  });
+
+  // Persist jobs to localStorage
+  useEffect(() => {
+    try { localStorage.setItem("tracket_jobs", JSON.stringify(jobs)); } catch {}
+  }, [jobs]);
+  useEffect(() => {
+    try { localStorage.setItem("tracket_history", JSON.stringify(jobHistory)); } catch {}
+  }, [jobHistory]);
   const alertsRef = useRef(null);
   const [stage, setStage] = useState(null);
   const [transcript, setTranscript] = useState("");
@@ -842,6 +1143,18 @@ export default function App() {
     if(result.action==="delete")    setConfirm({icon:"🗑️",title:t.deleteAccountQ,msg:"Account deleted."});
   };
 
+  const handleOnboardingComplete = (profile) => {
+    setBusinessProfile(profile);
+    try { localStorage.setItem("tracket_profile", JSON.stringify(profile)); localStorage.setItem("tracket_onboarded","1"); } catch {}
+    setShowOnboarding(false);
+  };
+
+  const handleSaveProfile = (profile) => {
+    setBusinessProfile(profile);
+    try { localStorage.setItem("tracket_profile", JSON.stringify(profile)); } catch {}
+    setConfirm({icon:"✅", title:t.profileSaved, msg:t.profileSavedMsg});
+  };
+
   const recurringLabel = (job) => {
     const base = {weekly:t.weekly,biweekly:t.biweekly,monthly:t.monthly}[job.recurring]||"";
     if(!base) return "";
@@ -855,11 +1168,15 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
+      {showOnboarding && (
+        <OnboardingFlow onComplete={handleOnboardingComplete} t={t}/>
+      )}
+      {!showOnboarding && (
       <div className="app">
 
         {/* ── HEADER ── */}
         <div className="hdr">
-          <div className="logo">Trade<span>Stack</span></div>
+        <div className="logo">Trac<span>ket</span></div>
           <div className="hdr-center">
             <div className="hdr-time">{timeStr}</div>
             <div className="hdr-date">{dateStr}</div>
@@ -1164,7 +1481,7 @@ export default function App() {
                 <div className="mtitle" style={{marginBottom:0}}><FileIcon c="#22c55e" s={20}/> {t.invoice}</div>
                 <button style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}} onClick={()=>setPdfJob(null)}><XIcon/></button>
               </div>
-              <InvoicePreview job={pdfJob}/>
+              <InvoicePreview job={pdfJob} profile={businessProfile}/>
               <button className="fbtn" onClick={()=>{setConfirm({icon:"📄",title:"PDF Ready!",msg:"Invoice has been prepared for download/send."});setPdfJob(null);}}>{t.downloadSend}</button>
               <button className="fbtn-sec" onClick={()=>setPdfJob(null)}>{t.close}</button>
             </div>
@@ -1234,7 +1551,7 @@ export default function App() {
               <div><label className="flabel">{t.date}</label><input className="finput" value={parsed.date||""} onChange={e=>setParsed(p=>({...p,date:e.target.value}))}/></div>
             </div>
             <label className="flabel">{t.phone}</label>
-            <input className="finput" placeholder="(555) 000-0000" value={parsed.phone||""} onChange={e=>setParsed(p=>({...p,phone:e.target.value}))}/>
+            <input className="finput" placeholder="(555) 000-0000" value={parsed.phone||""} onChange={e=>setParsed(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
             <label className="flabel">{t.status}</label>
             <select className="finput" value={parsed.status||"unpaid"} onChange={e=>setParsed(p=>({...p,status:e.target.value}))}>
               {STATUSES.map(s=><option key={s} value={s}>{t.statusLabels[s]||s}</option>)}
@@ -1302,7 +1619,7 @@ export default function App() {
                 <div><label className="flabel">{t.date}</label><input className="finput" placeholder={todayStr()} value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
               </div>
               <label className="flabel">{t.phone}</label>
-              <input className="finput" placeholder="(555) 000-0000" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/>
+              <input className="finput" placeholder="(555) 000-0000" value={form.phone} onChange={e=>setForm(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
               <label className="flabel">{t.status}</label>
               <select className="finput" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
                 {STATUSES.map(s=><option key={s} value={s}>{t.statusLabels[s]||s}</option>)}
@@ -1363,7 +1680,7 @@ export default function App() {
                 <div><label className="flabel">{t.date}</label><input className="finput" value={editJob.date||""} onChange={e=>setEditJob(p=>({...p,date:e.target.value}))}/></div>
               </div>
               <label className="flabel">{t.phone}</label>
-              <input className="finput" placeholder="(555) 000-0000" value={editJob.phone||""} onChange={e=>setEditJob(p=>({...p,phone:e.target.value}))}/>
+              <input className="finput" placeholder="(555) 000-0000" value={editJob.phone||""} onChange={e=>setEditJob(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
               <label className="flabel">{t.status}</label>
               <select className="finput" value={editJob.status} onChange={e=>setEditJob(p=>({...p,status:e.target.value}))}>
                 {STATUSES.map(s=><option key={s} value={s}>{t.statusLabels[s]||s}</option>)}
@@ -1407,9 +1724,10 @@ export default function App() {
 
         {/* SETTINGS PANEL */}
         {showSettings&&(
-          <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t}/>
+          <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t} profile={businessProfile} onSaveProfile={handleSaveProfile}/>
         )}
       </div>
+      )}
     </>
   );
 }
