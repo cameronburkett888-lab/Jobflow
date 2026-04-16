@@ -439,7 +439,7 @@ const fmtPhone = (v) => {
 
 const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 
-
+const SEED = [
   {id:1,client:"Dave Martinez",  type:"HVAC Install",    amount:3200, status:"unpaid",    date:"Mar 12", phone:"(555) 210-1234", recurring:null},
   {id:2,client:"Brian Kowalski", type:"Panel Upgrade",   amount:1850, status:"paid",      date:"Mar 5",  phone:"",               recurring:null},
   {id:3,client:"Greenway Plumbing",type:"Water Heater",  amount:740,  status:"quoted",    date:"Mar 18", phone:"(555) 330-9988", recurring:"monthly"},
