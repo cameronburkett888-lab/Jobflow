@@ -477,13 +477,6 @@ const SEED = [
   {id:5,client:"Ray Tanner",     type:"AC Service",      amount:320,  status:"overdue",   date:"Feb 28", phone:"(555) 512-7766", recurring:null},
 ];
 
-const SEED_ALERTS = [
-  {id:1,type:"urgent", title:"Overdue: Ray Tanner",       desc:"$320 AC Service invoice is 20+ days overdue. Consider sending a final notice.",action:"Send Reminder",client:"Ray Tanner"},
-  {id:2,type:"urgent", title:"Unpaid: Dave Martinez",     desc:"$3,200 HVAC Install — payment hasn't been received. Follow up now.",action:"Send Reminder",client:"Dave Martinez"},
-  {id:3,type:"warning",title:"Quote Unanswered",          desc:"Greenway Plumbing hasn't responded to your $740 water heater quote in 5 days.",action:"Follow Up",client:"Greenway Plumbing"},
-  {id:4,type:"info",   title:"Upcoming: Apex Construction",desc:"Rough-in wiring job on Mar 25. Make sure materials are prepped.",action:"Mark Ready",client:"Apex Construction"},
-];
-
 const COLORS = ["#f5a623","#3b82f6","#22c55e","#ef4444","#a855f7","#06b6d4"];
 const STATUSES = ["unpaid","quoted","scheduled","paid","overdue"];
 const RECURRING_OPTIONS = ["none","weekly","biweekly","monthly"];
@@ -498,7 +491,6 @@ const formatTime = (t) => { if(!t) return ""; const [h,m]=t.split(":"); const hr
 
 // ── RECURRING: compute next job date ─────────────────────────────────────────
 const addInterval = (dateStr, interval) => {
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const d = new Date();
   if(interval === "weekly")   d.setDate(d.getDate() + 7);
   if(interval === "biweekly") d.setDate(d.getDate() + 14);
@@ -506,22 +498,59 @@ const addInterval = (dateStr, interval) => {
   return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
 };
 
-// ── GENERATE RECURRING ALERTS ─────────────────────────────────────────────────
-const buildRecurringAlerts = (jobs) => {
+// ── DYNAMIC ALERTS FROM REAL JOB DATA ────────────────────────────────────────
+const buildDynamicAlerts = (jobs) => {
   const alerts = [];
+  const today = new Date(); today.setHours(0,0,0,0);
   jobs.forEach(j => {
-    if(!j.recurring || j.recurring === "none") return;
-    const label = {weekly:"weekly",biweekly:"bi-weekly",monthly:"monthly"}[j.recurring];
-    const nextDate = addInterval(j.date, j.recurring);
-    alerts.push({
-      id: `rec-${j.id}`,
-      type: "info",
-      title: `Upcoming Recurring: ${j.client}`,
-      desc: `Your ${label} ${j.type} job is coming up on ${nextDate}. Tap to review.`,
-      action: "Mark Ready",
-      client: j.client,
-      isRecurring: true,
-    });
+    // Overdue payments
+    if(j.status === "overdue") {
+      alerts.push({
+        id:`overdue-${j.id}`, type:"urgent",
+        title:`Overdue: ${j.client}`,
+        desc:`${fmt(j.amount)} ${j.type} invoice is overdue. Consider sending a final notice.`,
+        action:"Send Reminder", client:j.client,
+      });
+    }
+    // Unpaid jobs older than 7 days
+    if(j.status === "unpaid") {
+      alerts.push({
+        id:`unpaid-${j.id}`, type:"urgent",
+        title:`Unpaid: ${j.client}`,
+        desc:`${fmt(j.amount)} ${j.type} — payment hasn't been received. Follow up now.`,
+        action:"Send Reminder", client:j.client,
+      });
+    }
+    // Unanswered quotes
+    if(j.status === "quoted") {
+      alerts.push({
+        id:`quote-${j.id}`, type:"warning",
+        title:`Quote Unanswered: ${j.client}`,
+        desc:`${j.client} hasn't responded to your ${fmt(j.amount)} ${j.type} quote.`,
+        action:"Follow Up", client:j.client,
+      });
+    }
+    // Upcoming scheduled jobs
+    if(j.status === "scheduled") {
+      alerts.push({
+        id:`scheduled-${j.id}`, type:"info",
+        title:`Upcoming: ${j.client}`,
+        desc:`${j.type} job scheduled for ${j.date}. Make sure materials are prepped.`,
+        action:"Mark Ready", client:j.client,
+      });
+    }
+    // Upcoming recurring jobs
+    if(j.recurring && j.recurring !== "none") {
+      const label = {weekly:"weekly",biweekly:"bi-weekly",monthly:"monthly"}[j.recurring];
+      const nextDate = addInterval(j.date, j.recurring);
+      alerts.push({
+        id:`rec-${j.id}`, type:"info",
+        title:`Recurring: ${j.client}`,
+        desc:`Your ${label} ${j.type} job is coming up on ${nextDate}.`,
+        action:"Mark Ready", client:j.client,
+        isRecurring:true,
+      });
+    }
   });
   return alerts;
 };
@@ -1033,12 +1062,8 @@ export default function App() {
     return unsub;
   }, []);
 
-  const [jobs, setJobs] = useState(() => {
-    try { const s = localStorage.getItem("tracket_jobs"); return s ? JSON.parse(s) : SEED; } catch { return SEED; }
-  });
-  const [jobHistory, setJobHistory] = useState(() => {
-    try { const s = localStorage.getItem("tracket_history"); return s ? JSON.parse(s) : []; } catch { return []; }
-  });
+  const [jobs, setJobs] = useState([]);
+  const [jobHistory, setJobHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [dismissed, setDismissed] = useState([]);
   const [expanded, setExpanded] = useState(null);
@@ -1047,12 +1072,31 @@ export default function App() {
   const [pdfJob, setPdfJob] = useState(null);
 
   const defaultProfile = {ownerName:"",businessName:"",phone:"",email:"",city:"",state:"",license:"",logo:""};
-  const [businessProfile, setBusinessProfile] = useState(() => {
-    try { const s = localStorage.getItem("tracket_profile"); return s ? JSON.parse(s) : defaultProfile; } catch { return defaultProfile; }
-  });
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem("tracket_onboarded"); } catch { return true; }
-  });
+  const [businessProfile, setBusinessProfile] = useState(defaultProfile);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Load profile and onboarding status from Firestore when user logs in
+  useEffect(() => {
+    if(!user) { setProfileLoading(false); return; }
+    const loadProfile = async () => {
+      try {
+        const { getDoc } = await import("firebase/firestore");
+        const snap = await getDoc(doc(db, "users", user.uid, "meta", "profile"));
+        if(snap.exists()) {
+          setBusinessProfile(snap.data());
+          setShowOnboarding(false);
+        } else {
+          setBusinessProfile(defaultProfile);
+          setShowOnboarding(true);
+        }
+      } catch(e) {
+        setShowOnboarding(false);
+      }
+      setProfileLoading(false);
+    };
+    loadProfile();
+  }, [user]);
 
   // Persist jobs to localStorage
   useEffect(() => {
@@ -1161,10 +1205,8 @@ export default function App() {
     setExpanded(null);
   };
 
-  const recurringAlerts = buildRecurringAlerts(jobs);
-  const staticAlerts    = SEED_ALERTS.filter(a=>!dismissed.includes(a.id));
-  const allAlerts       = [...staticAlerts, ...recurringAlerts.filter(a=>!dismissed.includes(a.id))];
-  const activeAlerts    = allAlerts;
+  const allAlerts = buildDynamicAlerts(jobs).filter(a=>!dismissed.includes(a.id));
+  const activeAlerts = allAlerts;
 
   const owed     = jobs.filter(j=>j.status==="unpaid"||j.status==="overdue").reduce((s,j)=>s+j.amount,0);
   const collected= jobs.filter(j=>j.status==="paid").reduce((s,j)=>s+j.amount,0);
@@ -1311,15 +1353,19 @@ export default function App() {
     if(result.action==="delete") { try { await signOut(auth); } catch(e){} }
   };
 
-  const handleOnboardingComplete = (profile) => {
+  const handleOnboardingComplete = async (profile) => {
     setBusinessProfile(profile);
-    try { localStorage.setItem("tracket_profile", JSON.stringify(profile)); localStorage.setItem("tracket_onboarded","1"); } catch {}
     setShowOnboarding(false);
+    if(user) {
+      try { await setDoc(doc(db, "users", user.uid, "meta", "profile"), profile); } catch(e) { console.error(e); }
+    }
   };
 
-  const handleSaveProfile = (profile) => {
+  const handleSaveProfile = async (profile) => {
     setBusinessProfile(profile);
-    try { localStorage.setItem("tracket_profile", JSON.stringify(profile)); } catch {}
+    if(user) {
+      try { await setDoc(doc(db, "users", user.uid, "meta", "profile"), profile); } catch(e) { console.error(e); }
+    }
     setConfirm({icon:"✅", title:t.profileSaved, msg:t.profileSavedMsg});
   };
 
@@ -1342,10 +1388,15 @@ export default function App() {
         </div>
       )}
       {!authLoading && !user && <AuthScreen/>}
-      {!authLoading && user && showOnboarding && (
+      {!authLoading && user && (authLoading || profileLoading) && (
+        <div style={{minHeight:"100vh",background:"#0f1117",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:800,color:"#e8eaf0"}}>Trac<span style={{color:"#f5a623"}}>ket</span></div>
+        </div>
+      )}
+      {!authLoading && user && !profileLoading && showOnboarding && (
         <OnboardingFlow onComplete={handleOnboardingComplete} t={t}/>
       )}
-      {!authLoading && user && !showOnboarding && (
+      {!authLoading && user && !profileLoading && !showOnboarding && (
       <div className="app">
 
         {/* ── HEADER ── */}
