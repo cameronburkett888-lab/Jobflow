@@ -688,11 +688,11 @@ function OnboardingFlow({onComplete, t}) {
   const steps = [
     {
       icon:"👤", title:"What's your name?", subtitle:"We'll use this on your invoices.",
-      field:"ownerName", placeholder:"e.g. Cameron Burke", label:"Your Name",
+      field:"ownerName", placeholder:"e.g. John Smith", label:"Your Name",
     },
     {
       icon:"🏢", title:"Your business name?", subtitle:"This appears at the top of every invoice.",
-      field:"businessName", placeholder:"e.g. Burke Pressure Washing", label:"Business Name",
+      field:"businessName", placeholder:"e.g. Smith Electric LLC", label:"Business Name",
     },
     {
       icon:"📞", title:"Best phone number?", subtitle:"Clients see this on invoices.",
