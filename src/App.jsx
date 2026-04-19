@@ -4,7 +4,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  deleteUser
 } from "firebase/auth";
 import {
   collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch
@@ -1167,9 +1168,10 @@ function CalendarTab({jobs, t}) {
     if(!jobsByDay[dayNum].find(x => x.id === jobEntry.id)) jobsByDay[dayNum].push(jobEntry);
   };
 
-  // Step 1: plot real job records that fall in this month
+  // Step 1: plot real job records that fall in this month (skip recurring jobs - they use rules only)
   jobs.forEach(j => {
     if(!j.date) return;
+    if(j.recurring && j.recurring !== "none") return; // recurring jobs handled by rules only
     const parsed = new Date(j.date.includes(",") ? j.date : `${j.date}, ${year}`);
     if(isNaN(parsed)) return;
     if(parsed.getMonth() === month && parsed.getFullYear() === year) {
@@ -1406,7 +1408,7 @@ export default function App() {
   const [parsed, setParsed] = useState(null);
   const [voiceErr, setVoiceErr] = useState("");
   const recogRef = useRef(null);
-  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:""};
+  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:"",appointmentTime:""};
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editJob, setEditJob] = useState(null);
@@ -1537,6 +1539,11 @@ export default function App() {
   const handleAlertAction = a => {
     if(a.action==="Send Reminder") setConfirm({icon:"📨",title:"Reminder Sent!",msg:`Payment reminder sent to ${a.client}.`});
     else if(a.action==="Follow Up") setConfirm({icon:"📞",title:"Follow-Up Queued",msg:`Follow-up scheduled for ${a.client}.`});
+    else if(a.action==="Mark Ready") {
+      // Find the job and open it for editing so user can update status
+      const job = jobs.find(j=>j.client===a.client);
+      if(job) { setTab("Jobs"); setExpanded(job.id); }
+    }
     else if(a.action==="View") { setTab("Jobs"); setSearch(a.client); }
     else if(a.action==="Dismiss") dismissAlert(a.id, a.title);
   };
@@ -1669,7 +1676,21 @@ export default function App() {
     if(!result) return;
     if(result.action==="cancelled") setConfirm({icon:"✅",title:t.subCancelled,msg:t.subCancelledMsg});
     if(result.action==="signout") { try { await signOut(auth); } catch(e){} }
-    if(result.action==="delete") { try { await signOut(auth); } catch(e){} }
+    if(result.action==="delete") {
+      try {
+        if(user) {
+          const { getDocs, deleteDoc: firestoreDelete } = await import("firebase/firestore");
+          const jobsSnap = await getDocs(collection(db, "users", user.uid, "jobs"));
+          for(const d of jobsSnap.docs) await firestoreDelete(d.ref);
+          const histSnap = await getDocs(collection(db, "users", user.uid, "history"));
+          for(const d of histSnap.docs) await firestoreDelete(d.ref);
+          await firestoreDelete(doc(db, "users", user.uid, "meta", "profile")).catch(()=>{});
+          await deleteUser(user);
+        }
+      } catch(e) {
+        try { await signOut(auth); } catch(_) {}
+      }
+    }
   };
 
   const handleOnboardingComplete = async (profile) => {
@@ -2221,6 +2242,12 @@ export default function App() {
                   </div>
                 </div>
               )}
+              {form.recurring==="none"&&(
+                <>
+                  <label className="flabel">Appointment Time (optional)</label>
+                  <input className="finput" type="time" value={form.appointmentTime||""} onChange={e=>setForm(p=>({...p,appointmentTime:e.target.value}))}/>
+                </>
+              )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={form.paymentDue||""} onChange={e=>setForm(p=>({...p,paymentDue:e.target.value}))}/>
               <button className="fbtn" onClick={saveForm}>{t.saveJob}</button>
@@ -2281,6 +2308,12 @@ export default function App() {
                     <input className="finput" type="time" value={editJob.recurringTime||""} onChange={e=>setEditJob(p=>({...p,recurringTime:e.target.value}))}/>
                   </div>
                 </div>
+              )}
+              {(!editJob.recurring||editJob.recurring==="none")&&(
+                <>
+                  <label className="flabel">Appointment Time (optional)</label>
+                  <input className="finput" type="time" value={editJob.appointmentTime||""} onChange={e=>setEditJob(p=>({...p,appointmentTime:e.target.value}))}/>
+                </>
               )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={editJob.paymentDue||""} onChange={e=>setEditJob(p=>({...p,paymentDue:e.target.value}))}/>
