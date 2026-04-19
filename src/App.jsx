@@ -477,8 +477,6 @@ select.finput{cursor:pointer}
 .cal-num{font-size:13px;font-weight:600;color:var(--text);width:22px;height:22px;display:flex;align-items:center;justify-content:center}
 .cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:36px}
 .cal-dot{width:5px;height:5px;border-radius:50%}
-.cal-bars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px}
-.cal-bar{height:3px;border-radius:2px;width:100%}
 .cal-jobs-panel{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .cal-jobs-hdr{padding:12px 14px;border-bottom:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
 .cal-job-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -536,25 +534,45 @@ const addInterval = (dateStr, interval) => {
 const buildDynamicAlerts = (jobs) => {
   const alerts = [];
   const today = new Date(); today.setHours(0,0,0,0);
+  const todayNum = today.getDate();
+  const todayMonth = today.getMonth();
+  const todayYear = today.getFullYear();
+
   jobs.forEach(j => {
-    // Overdue payments
+    // Overdue payments — with smarter message for recurring jobs
     if(j.status === "overdue") {
+      const isRecurring = j.recurring && j.recurring !== "none";
+      const recurringLabel = {weekly:"weekly",biweekly:"bi-weekly",monthly:"monthly"}[j.recurring]||"";
       alerts.push({
         id:`overdue-${j.id}`, type:"urgent",
         title:`Overdue: ${j.client}`,
-        desc:`${fmt(j.amount)} ${j.type} invoice is overdue. Consider sending a final notice.`,
+        desc: isRecurring
+          ? `${j.client}'s ${recurringLabel} ${j.type} payment of ${fmt(j.amount)} hasn't come in. Send a reminder.`
+          : `${fmt(j.amount)} ${j.type} invoice is overdue. Consider sending a final notice.`,
         action:"Send Reminder", client:j.client,
       });
+      return; // don't also add an unpaid alert for overdue jobs
     }
-    // Unpaid jobs older than 7 days
+
+    // Unpaid jobs
     if(j.status === "unpaid") {
+      // Check how many days since the job date
+      let daysSince = 0;
+      if(j.date) {
+        const jobDate = new Date(j.date.includes(",") ? j.date : `${j.date}, ${todayYear}`);
+        if(!isNaN(jobDate)) {
+          jobDate.setHours(0,0,0,0);
+          daysSince = Math.floor((today - jobDate) / (1000*60*60*24));
+        }
+      }
       alerts.push({
         id:`unpaid-${j.id}`, type:"urgent",
         title:`Unpaid: ${j.client}`,
-        desc:`${fmt(j.amount)} ${j.type} — payment hasn't been received. Follow up now.`,
+        desc:`${fmt(j.amount)} ${j.type} — unpaid for ${daysSince > 0 ? `${daysSince} days` : "less than a day"}. Follow up now.`,
         action:"Send Reminder", client:j.client,
       });
     }
+
     // Unanswered quotes
     if(j.status === "quoted") {
       alerts.push({
@@ -564,8 +582,9 @@ const buildDynamicAlerts = (jobs) => {
         action:"Follow Up", client:j.client,
       });
     }
-    // Upcoming scheduled jobs
-    if(j.status === "scheduled") {
+
+    // Upcoming scheduled jobs (non-recurring only to avoid spam)
+    if(j.status === "scheduled" && (!j.recurring || j.recurring === "none")) {
       alerts.push({
         id:`scheduled-${j.id}`, type:"info",
         title:`Upcoming: ${j.client}`,
@@ -573,14 +592,15 @@ const buildDynamicAlerts = (jobs) => {
         action:"Mark Ready", client:j.client,
       });
     }
-    // Upcoming recurring jobs
-    if(j.recurring && j.recurring !== "none") {
-      const label = {weekly:"weekly",biweekly:"bi-weekly",monthly:"monthly"}[j.recurring];
+
+    // Recurring jobs coming up this month (only if not overdue)
+    if(j.recurring && j.recurring !== "none" && j.status !== "overdue" && j.status !== "paid") {
+      const label = {weekly:"Weekly",biweekly:"Bi-weekly",monthly:"Monthly"}[j.recurring]||"";
       const nextDate = addInterval(j.date, j.recurring);
       alerts.push({
         id:`rec-${j.id}`, type:"info",
-        title:`Recurring: ${j.client}`,
-        desc:`Your ${label} ${j.type} job is coming up on ${nextDate}.`,
+        title:`${label} Job: ${j.client}`,
+        desc:`Your ${label.toLowerCase()} ${j.type} job is coming up on ${nextDate}.`,
         action:"Mark Ready", client:j.client,
         isRecurring:true,
       });
@@ -1090,80 +1110,38 @@ function CalendarTab({jobs, t}) {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const monthName = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
-  const daysInMonth = new Date(year, month+1, 0).getDate();
+
   const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
   const prevDays = new Date(year, month, 0).getDate();
 
-  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
-
-  // Smart snap: if recurringDay > days in this month, use last day
-  const snapDay = (day, yr, mo) => Math.min(Number(day), new Date(yr, mo+1, 0).getDate());
-
-  // Build jobsByDay including recurring expansions
+  // Parse job dates to get day numbers for the current month/year
   const jobsByDay = {};
-  const addToDay = (dayNum, job) => {
-    if(dayNum < 1 || dayNum > daysInMonth) return;
-    if(!jobsByDay[dayNum]) jobsByDay[dayNum] = [];
-    // avoid duplicate entries (same job id same day)
-    if(!jobsByDay[dayNum].find(x=>x.id===job.id)) jobsByDay[dayNum].push(job);
-  };
-
   jobs.forEach(j => {
-    const recurring = j.recurring && j.recurring !== "none" ? j.recurring : null;
-
-    // ── Recurring jobs: generate occurrences for this month ──
-    if(recurring && j.recurringDay !== "" && j.recurringDay !== undefined) {
-      if(recurring === "monthly") {
-        const d = snapDay(j.recurringDay, year, month);
-        addToDay(d, j);
-      } else if(recurring === "weekly" || recurring === "biweekly") {
-        const targetDow = Number(j.recurringDay); // 0=Sun..6=Sat
-        const step = recurring === "biweekly" ? 14 : 7;
-        // Find first occurrence in this month
-        for(let d = 1; d <= daysInMonth; d++) {
-          const dow = new Date(year, month, d).getDay();
-          if(dow === targetDow) {
-            // Walk forward by step within the month
-            for(let x = d; x <= daysInMonth; x += step) addToDay(x, j);
-            break;
-          }
-        }
-      }
-      return; // recurring jobs shown via rule, not literal date
-    }
-
-    // ── One-time jobs: parse literal date ──
     if(!j.date) return;
-    // Handle "Mar 25" style
-    const parsed = new Date(j.date.includes(",") ? j.date : `${j.date}, ${year}`);
+    // Try to parse "Mar 25" style or "2024-03-25" style
+    const parsed = new Date(j.date + (j.date.includes(",") ? "" : `, ${year}`));
     if(isNaN(parsed)) return;
     if(parsed.getMonth() === month && parsed.getFullYear() === year) {
-      addToDay(parsed.getDate(), j);
+      const d = parsed.getDate();
+      if(!jobsByDay[d]) jobsByDay[d] = [];
+      jobsByDay[d].push(j);
     }
   });
 
-  // Get display time for a job
-  const jobTime = j => {
-    const t = j.appointmentTime || j.recurringTime || "";
-    if(!t) return null;
-    const [h, m] = t.split(":");
-    const hr = parseInt(h);
-    return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
-  };
+  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
 
   const cells = [];
-  for(let i = firstDay - 1; i >= 0; i--) cells.push({day: prevDays - i, type:"prev"});
-  for(let d = 1; d <= daysInMonth; d++) cells.push({day: d, type:"cur"});
+  // prev month padding
+  for(let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,type:"prev"});
+  // current month
+  for(let d=1;d<=daysInMonth;d++) cells.push({day:d,type:"cur"});
+  // next month padding
   const remaining = 42 - cells.length;
-  for(let d = 1; d <= remaining; d++) cells.push({day: d, type:"next"});
+  for(let d=1;d<=remaining;d++) cells.push({day:d,type:"next"});
 
-  const isToday = cell => cell.type==="cur" && today.getDate()===cell.day && today.getMonth()===month && today.getFullYear()===year;
-
-  const selectedJobs = selectedDay ? ([...(jobsByDay[selectedDay]||[])].sort((a,b)=>{
-    const ta = a.appointmentTime||a.recurringTime||"99:99";
-    const tb = b.appointmentTime||b.recurringTime||"99:99";
-    return ta.localeCompare(tb);
-  })) : [];
+  const isToday = d => d.type==="cur" && today.getDate()===d.day && today.getMonth()===month && today.getFullYear()===year;
+  const selectedJobs = selectedDay ? (jobsByDay[selectedDay]||[]) : [];
 
   return (
     <div className="cal-wrap">
@@ -1182,13 +1160,10 @@ function CalendarTab({jobs, t}) {
           >
             <div className="cal-num">{cell.day}</div>
             {cell.type==="cur" && jobsByDay[cell.day] && (
-              <div className="cal-bars">
-                {jobsByDay[cell.day].slice(0,3).map((j,k)=>(
-                  <div key={k} className="cal-bar" style={{background:statusColor(j.status)}}/>
+              <div className="cal-dots">
+                {jobsByDay[cell.day].slice(0,4).map((j,k)=>(
+                  <div key={k} className="cal-dot" style={{background:statusColor(j.status)}}/>
                 ))}
-                {jobsByDay[cell.day].length > 3 && (
-                  <div style={{fontSize:8,color:"var(--muted)",fontWeight:700}}>+{jobsByDay[cell.day].length-3}</div>
-                )}
               </div>
             )}
           </div>
@@ -1201,33 +1176,27 @@ function CalendarTab({jobs, t}) {
             {viewDate.toLocaleDateString("en-US",{month:"long"})} {selectedDay}
             {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— no jobs</span>}
           </div>
-          {selectedJobs.map(j=>{
-            const time = jobTime(j);
-            return (
-              <div key={j.id} className="cal-job-row">
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:3,borderRadius:2,alignSelf:"stretch",background:statusColor(j.status),flexShrink:0}}/>
-                  <div>
-                    <div className="cal-job-name">{j.client}</div>
-                    <div className="cal-job-type">{j.type}{time && <span style={{color:"var(--accent)",fontWeight:700,marginLeft:6}}>@ {time}</span>}</div>
-                  </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                  <div className="cal-job-amt">{fmt(j.amount)}</div>
-                  <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
-                </div>
+          {selectedJobs.map(j=>(
+            <div key={j.id} className="cal-job-row">
+              <div>
+                <div className="cal-job-name">{j.client}</div>
+                <div className="cal-job-type">{j.type}</div>
               </div>
-            );
-          })}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <div className="cal-job-amt">{fmt(j.amount)}</div>
+                <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div style={{marginTop:16,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
+      <div style={{marginTop:20,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
         <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".7px",marginBottom:10}}>Legend</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:"8px 16px"}}>
           {[["#ef4444","Overdue"],["#f5a623","Unpaid"],["#eab308","Quoted"],["#3b82f6","Scheduled"],["#22c55e","Paid"]].map(([c,l])=>(
-            <div key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--muted)"}}>
-              <div style={{width:12,height:4,borderRadius:2,background:c}}/>
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--muted)"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:c}}/>
               {l}
             </div>
           ))}
@@ -1341,7 +1310,7 @@ export default function App() {
   const [parsed, setParsed] = useState(null);
   const [voiceErr, setVoiceErr] = useState("");
   const recogRef = useRef(null);
-  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:"",appointmentTime:""};
+  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:""};
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editJob, setEditJob] = useState(null);
@@ -1360,11 +1329,52 @@ export default function App() {
   // ── OVERDUE AUTO-DETECTION on load ────────────────────────────────────────
   useEffect(() => {
     const today = new Date(); today.setHours(0,0,0,0);
+    const todayNum = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
     setJobs(prev => prev.map(j => {
+      // Already overdue — leave it
+      if(j.status === "overdue") return j;
+
+      // ── 1. Payment due date passed (manual) ──
       if((j.status === "unpaid" || j.status === "quoted") && j.paymentDue) {
         const due = new Date(j.paymentDue); due.setHours(0,0,0,0);
         if(due < today) return {...j, status:"overdue"};
       }
+
+      // ── 2. Recurring job: the scheduled day has passed and still unpaid/scheduled ──
+      if(j.recurring && j.recurring !== "none" && j.recurringDay !== "" && j.recurringDay !== undefined) {
+        if(j.status === "unpaid" || j.status === "scheduled") {
+          if(j.recurring === "monthly") {
+            // Snap day to this month (e.g. 31 → 28 in Feb)
+            const daysInThisMonth = new Date(todayYear, todayMonth + 1, 0).getDate();
+            const scheduledDay = Math.min(Number(j.recurringDay), daysInThisMonth);
+            // If the scheduled day has already passed this month → overdue
+            if(todayNum > scheduledDay) return {...j, status:"overdue"};
+          } else if(j.recurring === "weekly" || j.recurring === "biweekly") {
+            // Check if the most recent occurrence of that weekday has passed
+            const targetDow = Number(j.recurringDay);
+            const todayDow = today.getDay();
+            // Days since the last occurrence of targetDow
+            const daysSince = (todayDow - targetDow + 7) % 7;
+            const step = j.recurring === "biweekly" ? 14 : 7;
+            // If we're past that day and within the same cycle window → overdue
+            if(daysSince > 0 && daysSince < step) return {...j, status:"overdue"};
+          }
+        }
+      }
+
+      // ── 3. One-time unpaid job older than 14 days with no paymentDue set ──
+      if(j.status === "unpaid" && !j.paymentDue && j.date) {
+        const jobDate = new Date(j.date.includes(",") ? j.date : `${j.date}, ${todayYear}`);
+        if(!isNaN(jobDate)) {
+          jobDate.setHours(0,0,0,0);
+          const daysDiff = Math.floor((today - jobDate) / (1000 * 60 * 60 * 24));
+          if(daysDiff > 14) return {...j, status:"overdue"};
+        }
+      }
+
       return j;
     }));
   }, []);
@@ -1522,7 +1532,7 @@ export default function App() {
   };
 
   const confirmSave = () => {
-    const newJob = {id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:parsed.date||todayStr(),status:parsed.status||"unpaid",phone:parsed.phone||"",recurring:parsed.recurring||"none",recurringDay:parsed.recurringDay||"",recurringTime:parsed.recurringTime||"",paymentDue:parsed.paymentDue||"",appointmentTime:parsed.appointmentTime||""};
+    const newJob = {id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:parsed.date||todayStr(),status:parsed.status||"unpaid",phone:parsed.phone||"",recurring:parsed.recurring||"none",recurringDay:parsed.recurringDay||"",recurringTime:parsed.recurringTime||"",paymentDue:parsed.paymentDue||""};
     setJobs(prev=>[newJob, ...prev]);
     saveJobToFirestore(newJob);
     setStage(null); setTranscript(""); setParsed(null); setTab("Jobs");
@@ -1530,7 +1540,7 @@ export default function App() {
 
   const saveForm = () => {
     if(!form.client.trim()) return;
-    const newJob = {id:Date.now(),client:form.client,type:form.type||"General Job",amount:parseFloat(form.amount)||0,date:form.date||todayStr(),status:form.status||"unpaid",phone:form.phone||"",recurring:form.recurring||"none",recurringDay:form.recurringDay||"",recurringTime:form.recurringTime||"",paymentDue:form.paymentDue||"",appointmentTime:form.appointmentTime||""};
+    const newJob = {id:Date.now(),client:form.client,type:form.type||"General Job",amount:parseFloat(form.amount)||0,date:form.date||todayStr(),status:form.status||"unpaid",phone:form.phone||"",recurring:form.recurring||"none",recurringDay:form.recurringDay||"",recurringTime:form.recurringTime||"",paymentDue:form.paymentDue||""};
     setJobs(prev=>[newJob,...prev]);
     saveJobToFirestore(newJob);
     setForm(emptyForm); setShowForm(false);
@@ -2104,12 +2114,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {form.recurring==="none"&&(
-                <>
-                  <label className="flabel">Appointment Time (optional)</label>
-                  <input className="finput" type="time" value={form.appointmentTime||""} onChange={e=>setForm(p=>({...p,appointmentTime:e.target.value}))}/>
-                </>
-              )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={form.paymentDue||""} onChange={e=>setForm(p=>({...p,paymentDue:e.target.value}))}/>
               <button className="fbtn" onClick={saveForm}>{t.saveJob}</button>
@@ -2170,12 +2174,6 @@ export default function App() {
                     <input className="finput" type="time" value={editJob.recurringTime||""} onChange={e=>setEditJob(p=>({...p,recurringTime:e.target.value}))}/>
                   </div>
                 </div>
-              )}
-              {(!editJob.recurring||editJob.recurring==="none")&&(
-                <>
-                  <label className="flabel">Appointment Time (optional)</label>
-                  <input className="finput" type="time" value={editJob.appointmentTime||""} onChange={e=>setEditJob(p=>({...p,appointmentTime:e.target.value}))}/>
-                </>
               )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={editJob.paymentDue||""} onChange={e=>setEditJob(p=>({...p,paymentDue:e.target.value}))}/>
