@@ -477,6 +477,8 @@ select.finput{cursor:pointer}
 .cal-num{font-size:13px;font-weight:600;color:var(--text);width:22px;height:22px;display:flex;align-items:center;justify-content:center}
 .cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:36px}
 .cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-bars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px}
+.cal-bar{height:3px;border-radius:2px;width:100%}
 .cal-jobs-panel{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .cal-jobs-hdr{padding:12px 14px;border-bottom:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
 .cal-job-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -1138,44 +1140,95 @@ function OnboardingEmpty({onAddJob, t}) {
 // ── CALENDAR TAB ──────────────────────────────────────────────────────────────
 function CalendarTab({jobs, t}) {
   const today = new Date();
-  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const todayYear  = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay   = today.getDate();
+
+  const [viewDate, setViewDate] = useState(new Date(todayYear, todayMonth, 1));
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const year = viewDate.getFullYear();
+  const year  = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const monthName = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
-
-  const firstDay = new Date(year, month, 1).getDay();
+  const monthName   = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const prevDays = new Date(year, month, 0).getDate();
+  const firstDay    = new Date(year, month, 1).getDay();
+  const prevDays    = new Date(year, month, 0).getDate();
 
-  // Parse job dates to get day numbers for the current month/year
+  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
+  const snapDay = (day, yr, mo) => Math.min(Number(day), new Date(yr, mo+1, 0).getDate());
+
+  const isPastMonth = year < todayYear || (year === todayYear && month < todayMonth);
+  const isNewYear   = year > todayYear;
+
   const jobsByDay = {};
+  const addToDay = (dayNum, jobEntry) => {
+    if(dayNum < 1 || dayNum > daysInMonth) return;
+    if(!jobsByDay[dayNum]) jobsByDay[dayNum] = [];
+    if(!jobsByDay[dayNum].find(x => x.id === jobEntry.id)) jobsByDay[dayNum].push(jobEntry);
+  };
+
+  // Step 1: plot real job records that fall in this month
   jobs.forEach(j => {
     if(!j.date) return;
-    // Try to parse "Mar 25" style or "2024-03-25" style
-    const parsed = new Date(j.date + (j.date.includes(",") ? "" : `, ${year}`));
+    const parsed = new Date(j.date.includes(",") ? j.date : `${j.date}, ${year}`);
     if(isNaN(parsed)) return;
     if(parsed.getMonth() === month && parsed.getFullYear() === year) {
-      const d = parsed.getDate();
-      if(!jobsByDay[d]) jobsByDay[d] = [];
-      jobsByDay[d].push(j);
+      addToDay(parsed.getDate(), {...j, _projected:false});
     }
   });
 
-  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
+  // Step 2: project recurring jobs into current/future months only
+  if(!isPastMonth) {
+    jobs.forEach(j => {
+      if(!j.recurring || j.recurring === "none") return;
+      if(j.recurringDay === "" || j.recurringDay === undefined) return;
+
+      if(j.recurring === "monthly") {
+        const d = snapDay(j.recurringDay, year, month);
+        // Only project if no real record for this client on this day
+        const alreadyReal = (jobsByDay[d]||[]).some(x => x.client === j.client && !x._projected);
+        if(!alreadyReal) {
+          addToDay(d, {...j, status: isNewYear ? "scheduled" : (j.status==="paid"?"scheduled":j.status), _projected:true, id:`proj-${j.id}-${year}-${month}`});
+        }
+      } else if(j.recurring === "weekly" || j.recurring === "biweekly") {
+        const targetDow = Number(j.recurringDay);
+        const step = j.recurring === "biweekly" ? 14 : 7;
+        for(let d = 1; d <= daysInMonth; d++) {
+          if(new Date(year, month, d).getDay() === targetDow) {
+            for(let x = d; x <= daysInMonth; x += step) {
+              const alreadyReal = (jobsByDay[x]||[]).some(r => r.client === j.client && !r._projected);
+              if(!alreadyReal) addToDay(x, {...j, status: isNewYear ? "scheduled" : (j.status==="paid"?"scheduled":j.status), _projected:true, id:`proj-${j.id}-${year}-${month}-${x}`});
+            }
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  const jobTime = j => {
+    const raw = j.appointmentTime || j.recurringTime || "";
+    if(!raw) return null;
+    const [h, m] = raw.split(":");
+    const hr = parseInt(h);
+    return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+  };
 
   const cells = [];
-  // prev month padding
-  for(let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,type:"prev"});
-  // current month
-  for(let d=1;d<=daysInMonth;d++) cells.push({day:d,type:"cur"});
-  // next month padding
+  for(let i = firstDay-1; i >= 0; i--) cells.push({day:prevDays-i, type:"prev"});
+  for(let d = 1; d <= daysInMonth; d++) cells.push({day:d, type:"cur"});
   const remaining = 42 - cells.length;
-  for(let d=1;d<=remaining;d++) cells.push({day:d,type:"next"});
+  for(let d = 1; d <= remaining; d++) cells.push({day:d, type:"next"});
 
-  const isToday = d => d.type==="cur" && today.getDate()===d.day && today.getMonth()===month && today.getFullYear()===year;
-  const selectedJobs = selectedDay ? (jobsByDay[selectedDay]||[]) : [];
+  const isToday = cell => cell.type==="cur" && todayDay===cell.day && todayMonth===month && todayYear===year;
+
+  const selectedJobs = selectedDay
+    ? ([...(jobsByDay[selectedDay]||[])].sort((a,b)=>{
+        const ta = a.appointmentTime||a.recurringTime||"99:99";
+        const tb = b.appointmentTime||b.recurringTime||"99:99";
+        return ta.localeCompare(tb);
+      }))
+    : [];
 
   return (
     <div className="cal-wrap">
@@ -1194,10 +1247,13 @@ function CalendarTab({jobs, t}) {
           >
             <div className="cal-num">{cell.day}</div>
             {cell.type==="cur" && jobsByDay[cell.day] && (
-              <div className="cal-dots">
-                {jobsByDay[cell.day].slice(0,4).map((j,k)=>(
-                  <div key={k} className="cal-dot" style={{background:statusColor(j.status)}}/>
+              <div className="cal-bars">
+                {jobsByDay[cell.day].slice(0,3).map((j,k)=>(
+                  <div key={k} className="cal-bar" style={{background:statusColor(j.status)}}/>
                 ))}
+                {jobsByDay[cell.day].length > 3 && (
+                  <div style={{fontSize:8,color:"var(--muted)",fontWeight:700,lineHeight:1}}>+{jobsByDay[cell.day].length-3}</div>
+                )}
               </div>
             )}
           </div>
@@ -1210,27 +1266,33 @@ function CalendarTab({jobs, t}) {
             {viewDate.toLocaleDateString("en-US",{month:"long"})} {selectedDay}
             {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— no jobs</span>}
           </div>
-          {selectedJobs.map(j=>(
-            <div key={j.id} className="cal-job-row">
-              <div>
-                <div className="cal-job-name">{j.client}</div>
-                <div className="cal-job-type">{j.type}</div>
+          {selectedJobs.map((j,idx)=>{
+            const time = jobTime(j);
+            return (
+              <div key={idx} className="cal-job-row">
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:3,borderRadius:2,alignSelf:"stretch",minHeight:32,background:statusColor(j.status),flexShrink:0}}/>
+                  <div>
+                    <div className="cal-job-name">{j.client}</div>
+                    <div className="cal-job-type">{j.type}{time&&<span style={{color:"var(--accent)",fontWeight:700,marginLeft:6}}>@ {time}</span>}</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                  <div className="cal-job-amt">{fmt(j.amount)}</div>
+                  <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
+                </div>
               </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                <div className="cal-job-amt">{fmt(j.amount)}</div>
-                <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      <div style={{marginTop:20,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
+      <div style={{marginTop:16,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
         <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".7px",marginBottom:10}}>Legend</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:"8px 16px"}}>
           {[["#ef4444","Overdue"],["#f5a623","Unpaid"],["#eab308","Quoted"],["#3b82f6","Scheduled"],["#22c55e","Paid"]].map(([c,l])=>(
-            <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--muted)"}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:c}}/>
+            <div key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--muted)"}}>
+              <div style={{width:12,height:4,borderRadius:2,background:c}}/>
               {l}
             </div>
           ))}
