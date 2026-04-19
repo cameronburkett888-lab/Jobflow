@@ -35,6 +35,8 @@ const ChevronRightIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} 
 const HistoryIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>;
 const RestoreIcon = ({c="currentColor",s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>;
 const RepeatIcon = ({c="currentColor",s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
+const CalendarIcon = ({c="currentColor",s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const SortIcon = ({c="currentColor",s=14}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>;
 const ArrowDownIcon = ({c="currentColor",s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>;
 const BuildingIcon = ({c="currentColor",s=20}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
 const MapPinIcon = ({c="currentColor",s=16}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
@@ -87,7 +89,7 @@ const LANG = {
     keepPlan:"Keep My Plan", yesCancelSub:"Yes, Cancel",
     accessibility:"Accessibility & Language",
     language:"Language", english:"English", spanish:"Español",
-    appVersion:"Tracket v11.0",
+    appVersion:"Tracket v11.1",
     signOutQ:"Sign out?",
     signOutMsg:"You'll need to log back in to access your jobs and data.",
     signOutYes:"Sign Out",
@@ -103,7 +105,7 @@ const LANG = {
     weekly:"Weekly", biweekly:"Bi-Weekly", monthly:"Monthly",
     recurringBadge:"Recurring",
     recurringDay:"Recurring Day", recurringTime:"Recurring Time",
-    dayOfMonth:"Day of Month (1–28)", dayOfWeek:"Day of Week",
+    dayOfMonth:"Day of Month (1–31)", dayOfWeek:"Day of Week",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     deleteJobTitle:"Remove Job", deletePermTitle:"Delete Permanently",deletePermMsg:"This will permanently remove the job. Cannot be undone.",
     moveHistTitle:"Move to History", moveHistMsg:"Job will be archived. You can restore it anytime.",
@@ -161,7 +163,7 @@ const LANG = {
     keepPlan:"Mantener Mi Plan", yesCancelSub:"Sí, Cancelar",
     accessibility:"Accesibilidad e Idioma",
     language:"Idioma", english:"English", spanish:"Español",
-    appVersion:"Tracket v11.0",
+    appVersion:"Tracket v11.1",
     signOutQ:"¿Cerrar sesión?",
     signOutMsg:"Necesitarás iniciar sesión nuevamente.",
     signOutYes:"Cerrar Sesión",
@@ -453,6 +455,35 @@ select.finput{cursor:pointer}
 
 /* SETTINGS EDIT PROFILE SCREEN */
 .profile-edit-screen{padding:0 20px 20px}
+
+/* SORT BAR */
+.sort-bar{display:flex;align-items:center;gap:6px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none}
+.sort-bar::-webkit-scrollbar{display:none}
+.sort-pill{display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);white-space:nowrap;font-family:'Barlow',sans-serif;transition:all .15s}
+.sort-pill.active{background:var(--surface);border-color:var(--accent);color:var(--accent)}
+
+/* CALENDAR TAB */
+.cal-wrap{padding:0 16px 100px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0 16px}
+.cal-month{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--text)}
+.cal-arrow{background:var(--card);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);font-size:16px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-day-hdr{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;text-transform:uppercase;letter-spacing:.5px}
+.cal-cell{min-height:46px;border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:background .15s;position:relative}
+.cal-cell:hover{background:rgba(255,255,255,.05)}
+.cal-cell.today .cal-num{background:var(--accent);color:#0f1117;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-cell.selected{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3)}
+.cal-cell.other-month .cal-num{color:var(--muted);opacity:.4}
+.cal-num{font-size:13px;font-weight:600;color:var(--text);width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:36px}
+.cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-jobs-panel{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.cal-jobs-hdr{padding:12px 14px;border-bottom:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
+.cal-job-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.cal-job-row:last-child{border-bottom:none}
+.cal-job-name{font-size:13px;font-weight:700;color:var(--text)}
+.cal-job-type{font-size:11px;color:var(--muted);margin-top:1px}
+.cal-job-amt{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--accent)}
 .profile-edit-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#e08800);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#0f1117;margin:0 auto 16px;cursor:pointer;position:relative;overflow:hidden}
 .profile-edit-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .profile-edit-avatar-hint{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);font-size:9px;color:#fff;text-align:center;padding:3px 0;font-weight:600}
@@ -468,6 +499,7 @@ const fmtPhone = (v) => {
 };
 
 const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+const US_STATES_FULL = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",DC:"Washington DC"};
 
 const SEED = [
   {id:1,client:"Dave Martinez",  type:"HVAC Install",    amount:3200, status:"unpaid",    date:"Mar 12", phone:"(555) 210-1234", recurring:null},
@@ -757,7 +789,7 @@ function OnboardingFlow({onComplete, t}) {
                   <label>State</label>
                   <select className="ob-input" value={profile.state} onChange={e=>handleChange("state",e.target.value)} style={{cursor:"pointer"}}>
                     <option value="">-- Select State --</option>
-                    {US_STATES.map(s=><option key={s} value={s}>{s}</option>)}
+                    {US_STATES.map(s=><option key={s} value={s}>{US_STATES_FULL[s]||s}</option>)}
                   </select>
                 </div>
               </div>
@@ -1047,6 +1079,111 @@ function OnboardingEmpty({onAddJob, t}) {
   );
 }
 
+// ── CALENDAR TAB ──────────────────────────────────────────────────────────────
+function CalendarTab({jobs, t}) {
+  const today = new Date();
+  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthName = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const prevDays = new Date(year, month, 0).getDate();
+
+  // Parse job dates to get day numbers for the current month/year
+  const jobsByDay = {};
+  jobs.forEach(j => {
+    if(!j.date) return;
+    // Try to parse "Mar 25" style or "2024-03-25" style
+    const parsed = new Date(j.date + (j.date.includes(",") ? "" : `, ${year}`));
+    if(isNaN(parsed)) return;
+    if(parsed.getMonth() === month && parsed.getFullYear() === year) {
+      const d = parsed.getDate();
+      if(!jobsByDay[d]) jobsByDay[d] = [];
+      jobsByDay[d].push(j);
+    }
+  });
+
+  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
+
+  const cells = [];
+  // prev month padding
+  for(let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,type:"prev"});
+  // current month
+  for(let d=1;d<=daysInMonth;d++) cells.push({day:d,type:"cur"});
+  // next month padding
+  const remaining = 42 - cells.length;
+  for(let d=1;d<=remaining;d++) cells.push({day:d,type:"next"});
+
+  const isToday = d => d.type==="cur" && today.getDate()===d.day && today.getMonth()===month && today.getFullYear()===year;
+  const selectedJobs = selectedDay ? (jobsByDay[selectedDay]||[]) : [];
+
+  return (
+    <div className="cal-wrap">
+      <div className="cal-nav">
+        <button className="cal-arrow" onClick={()=>{setViewDate(new Date(year,month-1,1));setSelectedDay(null);}}>‹</button>
+        <div className="cal-month">{monthName}</div>
+        <button className="cal-arrow" onClick={()=>{setViewDate(new Date(year,month+1,1));setSelectedDay(null);}}>›</button>
+      </div>
+      <div className="cal-grid">
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} className="cal-day-hdr">{d}</div>)}
+        {cells.map((cell,i)=>(
+          <div
+            key={i}
+            className={`cal-cell ${isToday(cell)?"today":""} ${cell.type!=="cur"?"other-month":""} ${selectedDay===cell.day&&cell.type==="cur"?"selected":""}`}
+            onClick={()=>cell.type==="cur"&&setSelectedDay(selectedDay===cell.day?null:cell.day)}
+          >
+            <div className="cal-num">{cell.day}</div>
+            {cell.type==="cur" && jobsByDay[cell.day] && (
+              <div className="cal-dots">
+                {jobsByDay[cell.day].slice(0,4).map((j,k)=>(
+                  <div key={k} className="cal-dot" style={{background:statusColor(j.status)}}/>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {selectedDay && (
+        <div className="cal-jobs-panel">
+          <div className="cal-jobs-hdr">
+            {viewDate.toLocaleDateString("en-US",{month:"long"})} {selectedDay}
+            {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— no jobs</span>}
+          </div>
+          {selectedJobs.map(j=>(
+            <div key={j.id} className="cal-job-row">
+              <div>
+                <div className="cal-job-name">{j.client}</div>
+                <div className="cal-job-type">{j.type}</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <div className="cal-job-amt">{fmt(j.amount)}</div>
+                <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{marginTop:20,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".7px",marginBottom:10}}>Legend</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:"8px 16px"}}>
+          {[["#ef4444","Overdue"],["#f5a623","Unpaid"],["#eab308","Quoted"],["#3b82f6","Scheduled"],["#22c55e","Paid"]].map(([c,l])=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--muted)"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:c}}/>
+              {l}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("Jobs");
@@ -1070,6 +1207,7 @@ export default function App() {
   const [jobFilter, setJobFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [pdfJob, setPdfJob] = useState(null);
+  const [jobSort, setJobSort] = useState("none"); // "none"|"date-asc"|"date-desc"|"amount-asc"|"amount-desc"|"name-asc"
 
   const defaultProfile = {ownerName:"",businessName:"",phone:"",email:"",city:"",state:"",license:"",logo:""};
   const [businessProfile, setBusinessProfile] = useState(defaultProfile);
@@ -1214,7 +1352,18 @@ export default function App() {
   const upcoming = jobs.filter(j=>j.status==="scheduled").reduce((s,j)=>s+j.amount,0);
 
   const filterCfg      = FILTERS.find(f=>f.key===jobFilter);
-  const filteredJobs   = jobs.filter(filterCfg.match).filter(j=>!search||j.client.toLowerCase().includes(search.toLowerCase())||j.type.toLowerCase().includes(search.toLowerCase()));
+  const baseFiltered   = jobs.filter(filterCfg.match).filter(j=>!search||j.client.toLowerCase().includes(search.toLowerCase())||j.type.toLowerCase().includes(search.toLowerCase()));
+  const filteredJobs   = [...baseFiltered].sort((a,b)=>{
+    if(jobSort==="name-asc")      return a.client.localeCompare(b.client);
+    if(jobSort==="amount-desc")   return b.amount - a.amount;
+    if(jobSort==="amount-asc")    return a.amount - b.amount;
+    if(jobSort==="date-asc"||jobSort==="date-desc") {
+      const da = new Date(a.date+", "+new Date().getFullYear());
+      const db2= new Date(b.date+", "+new Date().getFullYear());
+      return jobSort==="date-asc" ? da-db2 : db2-da;
+    }
+    return 0;
+  });
   const contacts       = jobs.map((j,i)=>({id:j.id,name:j.client,initials:getInitials(j.client),color:COLORS[i%COLORS.length],jobType:j.type,amount:j.amount,status:j.status,phone:j.phone}));
   const filteredContacts = contacts.filter(c=>!search||c.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -1473,6 +1622,20 @@ export default function App() {
               ))}
             </div>
 
+            <div className="sort-bar">
+              <SortIcon c="var(--muted)" s={13}/>
+              {[
+                {key:"none",       label:"Default"},
+                {key:"date-desc",  label:"Newest"},
+                {key:"date-asc",   label:"Oldest"},
+                {key:"amount-desc",label:"$ High"},
+                {key:"amount-asc", label:"$ Low"},
+                {key:"name-asc",   label:"A–Z"},
+              ].map(s=>(
+                <button key={s.key} className={`sort-pill ${jobSort===s.key?"active":""}`} onClick={()=>setJobSort(s.key)}>{s.label}</button>
+              ))}
+            </div>
+
             {jobFilter!=="all"&&!search&&(
               <div className="filter-banner">
                 <div className="filter-banner-left">
@@ -1561,6 +1724,11 @@ export default function App() {
           </div>
         )}
 
+        {/* ── CALENDAR TAB ── */}
+        {tab==="Calendar"&&(
+          <CalendarTab jobs={jobs} t={t}/>
+        )}
+
         {/* ── CONTACTS TAB ── */}
         {tab==="Contacts"&&(
           <div className="sec">
@@ -1615,10 +1783,15 @@ export default function App() {
 
         {/* NAV */}
         <nav className="nav">
-          {[{name:"Jobs",icon:<WrenchIcon/>},{name:"Alerts",icon:<BellIcon/>},{name:"Contacts",icon:<UsersIcon/>}].map(nt=>(
+          {[
+            {name:"Jobs",     icon:<WrenchIcon/>},
+            {name:"Calendar", icon:<CalendarIcon/>},
+            {name:"Contacts", icon:<UsersIcon/>},
+            {name:"Alerts",   icon:<BellIcon/>},
+          ].map(nt=>(
             <button key={nt.name} className={`ni ${tab===nt.name?"active":""}`} onClick={()=>{setTab(nt.name);setExpanded(null);}}>
               {nt.icon}
-              {t[nt.name.toLowerCase()]||nt.name}
+              {nt.name==="Calendar"?"Calendar":t[nt.name.toLowerCase()]||nt.name}
               {nt.name==="Alerts"&&activeAlerts.length>0&&<span className="nav-badge">{activeAlerts.length}</span>}
             </button>
           ))}
@@ -1795,7 +1968,7 @@ export default function App() {
                   {parsed.recurring==="monthly"?(
                     <select className="finput" value={parsed.recurringDay||""} onChange={e=>setParsed(p=>({...p,recurringDay:e.target.value}))}>
                       <option value="">-- Day --</option>
-                      {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                      {Array.from({length:31},(_,i)=>{ const d=i+1; const lbl=d>=29?`${d} (snaps to last day in short months)`:String(d); return <option key={d} value={d}>{lbl}</option>; })}
                     </select>
                   ):(
                     <select className="finput" value={parsed.recurringDay||""} onChange={e=>setParsed(p=>({...p,recurringDay:e.target.value}))}>
@@ -1863,7 +2036,7 @@ export default function App() {
                     {form.recurring==="monthly"?(
                       <select className="finput" value={form.recurringDay||""} onChange={e=>setForm(p=>({...p,recurringDay:e.target.value}))}>
                         <option value="">-- Day --</option>
-                        {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                        {Array.from({length:31},(_,i)=>{ const d=i+1; const lbl=d>=29?`${d} (snaps to last day in short months)`:String(d); return <option key={d} value={d}>{lbl}</option>; })}
                       </select>
                     ):(
                       <select className="finput" value={form.recurringDay||""} onChange={e=>setForm(p=>({...p,recurringDay:e.target.value}))}>
@@ -1924,7 +2097,7 @@ export default function App() {
                     {editJob.recurring==="monthly"?(
                       <select className="finput" value={editJob.recurringDay||""} onChange={e=>setEditJob(p=>({...p,recurringDay:e.target.value}))}>
                         <option value="">-- Day --</option>
-                        {Array.from({length:28},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                        {Array.from({length:31},(_,i)=>{ const d=i+1; const lbl=d>=29?`${d} (snaps to last day in short months)`:String(d); return <option key={d} value={d}>{lbl}</option>; })}
                       </select>
                     ):(
                       <select className="finput" value={editJob.recurringDay||""} onChange={e=>setEditJob(p=>({...p,recurringDay:e.target.value}))}>
