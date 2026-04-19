@@ -477,8 +477,6 @@ select.finput{cursor:pointer}
 .cal-num{font-size:13px;font-weight:600;color:var(--text);width:22px;height:22px;display:flex;align-items:center;justify-content:center}
 .cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:36px}
 .cal-dot{width:5px;height:5px;border-radius:50%}
-.cal-bars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px}
-.cal-bar{height:3px;border-radius:2px;width:100%}
 .cal-jobs-panel{margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .cal-jobs-hdr{padding:12px 14px;border-bottom:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700}
 .cal-job-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -530,6 +528,35 @@ const addInterval = (dateStr, interval) => {
   if(interval === "biweekly") d.setDate(d.getDate() + 14);
   if(interval === "monthly")  d.setMonth(d.getMonth() + 1);
   return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+};
+
+// Calculate the correct first occurrence date for a recurring job added today
+const firstOccurrenceDate = (recurring, recurringDay) => {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayNum = today.getDate();
+  const todayDow = today.getDay();
+
+  if(recurring === "monthly") {
+    const day = Number(recurringDay);
+    if(!day) return today.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    // If day already passed this month, use next month
+    const targetMonth = todayNum >= day ? today.getMonth() + 1 : today.getMonth();
+    const targetYear  = targetMonth > 11 ? today.getFullYear() + 1 : today.getFullYear();
+    const daysInTarget = new Date(targetYear, (targetMonth % 12) + 1, 0).getDate();
+    const snapped = Math.min(day, daysInTarget);
+    return new Date(targetYear, targetMonth % 12, snapped).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  }
+
+  if(recurring === "weekly" || recurring === "biweekly") {
+    const targetDow = Number(recurringDay);
+    let daysUntil = (targetDow - todayDow + 7) % 7;
+    if(daysUntil === 0) daysUntil = 7; // if today is the day, schedule for next week
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysUntil);
+    return next.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  }
+
+  return today.toLocaleDateString("en-US",{month:"short",day:"numeric"});
 };
 
 // ── DYNAMIC ALERTS FROM REAL JOB DATA ────────────────────────────────────────
@@ -590,22 +617,27 @@ const buildDynamicAlerts = (jobs) => {
       alerts.push({
         id:`scheduled-${j.id}`, type:"info",
         title:`Upcoming: ${j.client}`,
-        desc:`${j.type} job scheduled for ${j.date}. Make sure materials are prepped.`,
-        action:"Mark Ready", client:j.client,
+        desc:`${j.type} job scheduled for ${j.date}. Tap to view.`,
+        action:"View", client:j.client,
       });
     }
 
-    // Recurring jobs coming up this month (only if not overdue)
+    // Recurring jobs: only alert if coming up within 3 days
     if(j.recurring && j.recurring !== "none" && j.status !== "overdue" && j.status !== "paid") {
-      const label = {weekly:"Weekly",biweekly:"Bi-weekly",monthly:"Monthly"}[j.recurring]||"";
-      const nextDate = addInterval(j.date, j.recurring);
-      alerts.push({
-        id:`rec-${j.id}`, type:"info",
-        title:`${label} Job: ${j.client}`,
-        desc:`Your ${label.toLowerCase()} ${j.type} job is coming up on ${nextDate}.`,
-        action:"Mark Ready", client:j.client,
-        isRecurring:true,
-      });
+      const today = new Date(); today.setHours(0,0,0,0);
+      const nextDateStr = firstOccurrenceDate(j.recurring, j.recurringDay);
+      const nextDate = new Date(nextDateStr + ", " + today.getFullYear());
+      const daysUntil = Math.ceil((nextDate - today) / (1000*60*60*24));
+      if(daysUntil <= 3 && daysUntil >= 0) {
+        const label = {weekly:"Weekly",biweekly:"Bi-weekly",monthly:"Monthly"}[j.recurring]||"";
+        alerts.push({
+          id:`rec-${j.id}`, type:"warning",
+          title:`${label} Job in ${daysUntil === 0 ? "today" : `${daysUntil} day${daysUntil===1?"":"s"}`}: ${j.client}`,
+          desc:`${j.type} — ${fmt(j.amount)} due ${daysUntil === 0 ? "today" : `in ${daysUntil} days`}. Make sure you're prepped.`,
+          action:"Dismiss", client:j.client,
+          isRecurring:true,
+        });
+      }
     }
   });
   return alerts;
@@ -1106,94 +1138,44 @@ function OnboardingEmpty({onAddJob, t}) {
 // ── CALENDAR TAB ──────────────────────────────────────────────────────────────
 function CalendarTab({jobs, t}) {
   const today = new Date();
-  const todayYear  = today.getFullYear();
-  const todayMonth = today.getMonth();
-  const todayDay   = today.getDate();
-
-  const [viewDate, setViewDate] = useState(new Date(todayYear, todayMonth, 1));
+  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const year  = viewDate.getFullYear();
+  const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const monthName   = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const monthName = viewDate.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const firstDay    = new Date(year, month, 1).getDay();
-  const prevDays    = new Date(year, month, 0).getDate();
+  const prevDays = new Date(year, month, 0).getDate();
 
-  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
-  const snapDay = (day, yr, mo) => Math.min(Number(day), new Date(yr, mo+1, 0).getDate());
-
-  const isPastMonth   = year < todayYear || (year === todayYear && month < todayMonth);
-  const isNewYear     = year > todayYear;
-
+  // Parse job dates to get day numbers for the current month/year
   const jobsByDay = {};
-  const addToDay = (dayNum, jobEntry) => {
-    if(dayNum < 1 || dayNum > daysInMonth) return;
-    if(!jobsByDay[dayNum]) jobsByDay[dayNum] = [];
-    if(!jobsByDay[dayNum].find(x => x.id === jobEntry.id)) jobsByDay[dayNum].push(jobEntry);
-  };
-
-  // Step 1: Plot real records for this month
   jobs.forEach(j => {
     if(!j.date) return;
-    const parsed = new Date(j.date.includes(",") ? j.date : `${j.date}, ${year}`);
+    // Try to parse "Mar 25" style or "2024-03-25" style
+    const parsed = new Date(j.date + (j.date.includes(",") ? "" : `, ${year}`));
     if(isNaN(parsed)) return;
     if(parsed.getMonth() === month && parsed.getFullYear() === year) {
-      addToDay(parsed.getDate(), {...j, _projected:false});
+      const d = parsed.getDate();
+      if(!jobsByDay[d]) jobsByDay[d] = [];
+      jobsByDay[d].push(j);
     }
   });
 
-  // Step 2: Project recurring jobs into current/future months only
-  if(!isPastMonth) {
-    jobs.forEach(j => {
-      if(!j.recurring || j.recurring === "none") return;
-      if(j.recurringDay === "" || j.recurringDay === undefined) return;
-
-      if(j.recurring === "monthly") {
-        const d = snapDay(j.recurringDay, year, month);
-        const alreadyReal = (jobsByDay[d]||[]).some(x => x.client === j.client && !x._projected);
-        if(!alreadyReal) {
-          addToDay(d, {...j, status: isNewYear ? "scheduled" : (j.status==="paid"?"scheduled":j.status), _projected:true, id:`proj-${j.id}-${year}-${month}`});
-        }
-      } else if(j.recurring === "weekly" || j.recurring === "biweekly") {
-        const targetDow = Number(j.recurringDay);
-        const step = j.recurring === "biweekly" ? 14 : 7;
-        for(let d = 1; d <= daysInMonth; d++) {
-          if(new Date(year, month, d).getDay() === targetDow) {
-            for(let x = d; x <= daysInMonth; x += step) {
-              const alreadyReal = (jobsByDay[x]||[]).some(r => r.client === j.client && !r._projected);
-              if(!alreadyReal) addToDay(x, {...j, status: isNewYear ? "scheduled" : (j.status==="paid"?"scheduled":j.status), _projected:true, id:`proj-${j.id}-${year}-${month}-${x}`});
-            }
-            break;
-          }
-        }
-      }
-    });
-  }
-
-  const jobTime = j => {
-    const raw = j.appointmentTime || j.recurringTime || "";
-    if(!raw) return null;
-    const [h, m] = raw.split(":");
-    const hr = parseInt(h);
-    return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? "PM" : "AM"}`;
-  };
+  const statusColor = s => ({paid:"#22c55e",unpaid:"#f5a623",overdue:"#ef4444",quoted:"#eab308",scheduled:"#3b82f6"}[s]||"#6b7280");
 
   const cells = [];
-  for(let i = firstDay-1; i >= 0; i--) cells.push({day:prevDays-i, type:"prev"});
-  for(let d = 1; d <= daysInMonth; d++) cells.push({day:d, type:"cur"});
+  // prev month padding
+  for(let i=firstDay-1;i>=0;i--) cells.push({day:prevDays-i,type:"prev"});
+  // current month
+  for(let d=1;d<=daysInMonth;d++) cells.push({day:d,type:"cur"});
+  // next month padding
   const remaining = 42 - cells.length;
-  for(let d = 1; d <= remaining; d++) cells.push({day:d, type:"next"});
+  for(let d=1;d<=remaining;d++) cells.push({day:d,type:"next"});
 
-  const isToday = cell => cell.type==="cur" && todayDay===cell.day && todayMonth===month && todayYear===year;
-
-  const selectedJobs = selectedDay
-    ? ([...(jobsByDay[selectedDay]||[])].sort((a,b)=>{
-        const ta = a.appointmentTime||a.recurringTime||"99:99";
-        const tb = b.appointmentTime||b.recurringTime||"99:99";
-        return ta.localeCompare(tb);
-      }))
-    : [];
+  const isToday = d => d.type==="cur" && today.getDate()===d.day && today.getMonth()===month && today.getFullYear()===year;
+  const selectedJobs = selectedDay ? (jobsByDay[selectedDay]||[]) : [];
 
   return (
     <div className="cal-wrap">
@@ -1212,13 +1194,10 @@ function CalendarTab({jobs, t}) {
           >
             <div className="cal-num">{cell.day}</div>
             {cell.type==="cur" && jobsByDay[cell.day] && (
-              <div className="cal-bars">
-                {jobsByDay[cell.day].slice(0,3).map((j,k)=>(
-                  <div key={k} className="cal-bar" style={{background:statusColor(j.status)}}/>
+              <div className="cal-dots">
+                {jobsByDay[cell.day].slice(0,4).map((j,k)=>(
+                  <div key={k} className="cal-dot" style={{background:statusColor(j.status)}}/>
                 ))}
-                {jobsByDay[cell.day].length > 3 && (
-                  <div style={{fontSize:8,color:"var(--muted)",fontWeight:700,lineHeight:1}}>+{jobsByDay[cell.day].length-3}</div>
-                )}
               </div>
             )}
           </div>
@@ -1231,36 +1210,27 @@ function CalendarTab({jobs, t}) {
             {viewDate.toLocaleDateString("en-US",{month:"long"})} {selectedDay}
             {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— no jobs</span>}
           </div>
-          {selectedJobs.map((j,idx)=>{
-            const time = jobTime(j);
-            return (
-              <div key={idx} className="cal-job-row">
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:3,borderRadius:2,alignSelf:"stretch",minHeight:32,background:statusColor(j.status),flexShrink:0}}/>
-                  <div>
-                    <div className="cal-job-name">{j.client}</div>
-                    <div className="cal-job-type">
-                      {j.type}
-                      {time && <span style={{color:"var(--accent)",fontWeight:700,marginLeft:6}}>@ {time}</span>}
-                    </div>
-                  </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                  <div className="cal-job-amt">{fmt(j.amount)}</div>
-                  <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
-                </div>
+          {selectedJobs.map(j=>(
+            <div key={j.id} className="cal-job-row">
+              <div>
+                <div className="cal-job-name">{j.client}</div>
+                <div className="cal-job-type">{j.type}</div>
               </div>
-            );
-          })}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <div className="cal-job-amt">{fmt(j.amount)}</div>
+                <span className={`badge ${badgeClass(j.status)}`} style={{fontSize:9}}>{t.statusLabels[j.status]||j.status}</span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div style={{marginTop:16,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
+      <div style={{marginTop:20,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
         <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".7px",marginBottom:10}}>Legend</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:"8px 16px"}}>
           {[["#ef4444","Overdue"],["#f5a623","Unpaid"],["#eab308","Quoted"],["#3b82f6","Scheduled"],["#22c55e","Paid"]].map(([c,l])=>(
-            <div key={l} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--muted)"}}>
-              <div style={{width:12,height:4,borderRadius:2,background:c}}/>
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:12,color:"var(--muted)"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:c}}/>
               {l}
             </div>
           ))}
@@ -1374,7 +1344,7 @@ export default function App() {
   const [parsed, setParsed] = useState(null);
   const [voiceErr, setVoiceErr] = useState("");
   const recogRef = useRef(null);
-  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:"",appointmentTime:""};
+  const emptyForm = {client:"",type:"",amount:"",date:"",status:"unpaid",phone:"",recurring:"none",recurringDay:"",recurringTime:"",paymentDue:""};
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editJob, setEditJob] = useState(null);
@@ -1505,7 +1475,8 @@ export default function App() {
   const handleAlertAction = a => {
     if(a.action==="Send Reminder") setConfirm({icon:"📨",title:"Reminder Sent!",msg:`Payment reminder sent to ${a.client}.`});
     else if(a.action==="Follow Up") setConfirm({icon:"📞",title:"Follow-Up Queued",msg:`Follow-up scheduled for ${a.client}.`});
-    else if(a.action==="Mark Ready") setConfirm({icon:"✅",title:"Marked Ready",msg:`${a.client} job marked as ready.`});
+    else if(a.action==="View") { setTab("Jobs"); setSearch(a.client); }
+    else if(a.action==="Dismiss") dismissAlert(a.id, a.title);
   };
 
   const handleRemind = (client,e) => { e.stopPropagation(); setConfirm({icon:"📨",title:"Reminder Sent!",msg:`Payment reminder sent to ${client}.`}); };
@@ -1596,7 +1567,12 @@ export default function App() {
   };
 
   const confirmSave = () => {
-    const newJob = {id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:parsed.date||todayStr(),status:parsed.status||"unpaid",phone:parsed.phone||"",recurring:parsed.recurring||"none",recurringDay:parsed.recurringDay||"",recurringTime:parsed.recurringTime||"",paymentDue:parsed.paymentDue||"",appointmentTime:parsed.appointmentTime||""};
+    const isRecurring = parsed.recurring && parsed.recurring !== "none";
+    const jobDate = isRecurring && parsed.recurringDay
+      ? firstOccurrenceDate(parsed.recurring, parsed.recurringDay)
+      : (parsed.date || todayStr());
+    const jobStatus = isRecurring ? "scheduled" : (parsed.status || "unpaid");
+    const newJob = {id:Date.now(),client:parsed.client||"Unknown Client",type:parsed.type||"General Job",amount:parseFloat(parsed.amount)||0,date:jobDate,status:jobStatus,phone:parsed.phone||"",recurring:parsed.recurring||"none",recurringDay:parsed.recurringDay||"",recurringTime:parsed.recurringTime||"",paymentDue:parsed.paymentDue||"",appointmentTime:parsed.appointmentTime||""};
     setJobs(prev=>[newJob, ...prev]);
     saveJobToFirestore(newJob);
     setStage(null); setTranscript(""); setParsed(null); setTab("Jobs");
@@ -1604,7 +1580,12 @@ export default function App() {
 
   const saveForm = () => {
     if(!form.client.trim()) return;
-    const newJob = {id:Date.now(),client:form.client,type:form.type||"General Job",amount:parseFloat(form.amount)||0,date:form.date||todayStr(),status:form.status||"unpaid",phone:form.phone||"",recurring:form.recurring||"none",recurringDay:form.recurringDay||"",recurringTime:form.recurringTime||"",paymentDue:form.paymentDue||"",appointmentTime:form.appointmentTime||""};
+    const isRecurring = form.recurring && form.recurring !== "none";
+    const jobDate = isRecurring && form.recurringDay
+      ? firstOccurrenceDate(form.recurring, form.recurringDay)
+      : (form.date || todayStr());
+    const jobStatus = isRecurring ? "scheduled" : (form.status || "unpaid");
+    const newJob = {id:Date.now(),client:form.client,type:form.type||"General Job",amount:parseFloat(form.amount)||0,date:jobDate,status:jobStatus,phone:form.phone||"",recurring:form.recurring||"none",recurringDay:form.recurringDay||"",recurringTime:form.recurringTime||"",paymentDue:form.paymentDue||"",appointmentTime:form.appointmentTime||""};
     setJobs(prev=>[newJob,...prev]);
     saveJobToFirestore(newJob);
     setForm(emptyForm); setShowForm(false);
@@ -2178,12 +2159,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {form.recurring==="none"&&(
-                <>
-                  <label className="flabel">Appointment Time (optional)</label>
-                  <input className="finput" type="time" value={form.appointmentTime||""} onChange={e=>setForm(p=>({...p,appointmentTime:e.target.value}))}/>
-                </>
-              )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={form.paymentDue||""} onChange={e=>setForm(p=>({...p,paymentDue:e.target.value}))}/>
               <button className="fbtn" onClick={saveForm}>{t.saveJob}</button>
@@ -2244,12 +2219,6 @@ export default function App() {
                     <input className="finput" type="time" value={editJob.recurringTime||""} onChange={e=>setEditJob(p=>({...p,recurringTime:e.target.value}))}/>
                   </div>
                 </div>
-              )}
-              {(!editJob.recurring||editJob.recurring==="none")&&(
-                <>
-                  <label className="flabel">Appointment Time (optional)</label>
-                  <input className="finput" type="time" value={editJob.appointmentTime||""} onChange={e=>setEditJob(p=>({...p,appointmentTime:e.target.value}))}/>
-                </>
               )}
               <label className="flabel">{t.paymentDueDate}</label>
               <input className="finput" type="date" value={editJob.paymentDue||""} onChange={e=>setEditJob(p=>({...p,paymentDue:e.target.value}))}/>
