@@ -4,7 +4,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  deleteUser
 } from "firebase/auth";
 import {
   collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch
@@ -386,7 +387,7 @@ select.finput{cursor:pointer}
 .settings-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800}
 .settings-close{background:var(--card);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)}
 .settings-close:hover{color:var(--text);border-color:var(--text)}
-.dest-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px}
+.dest-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
 .dest-box{background:var(--surface);border:1px solid rgba(239,68,68,.4);border-radius:16px;padding:24px;width:100%;max-width:320px;text-align:center}
 
 /* ── ONBOARDING EMPTY STATE ── */
@@ -1499,7 +1500,25 @@ export default function App() {
     if(!result) return;
     if(result.action==="cancelled") setConfirm({icon:"✅",title:t.subCancelled,msg:t.subCancelledMsg});
     if(result.action==="signout") { try { await signOut(auth); } catch(e){} }
-    if(result.action==="delete") { try { await signOut(auth); } catch(e){} }
+    if(result.action==="delete") {
+      try {
+        if(user) {
+          // Delete all Firestore data first
+          const { getDocs, deleteDoc: firestoreDelete } = await import("firebase/firestore");
+          const jobsSnap = await getDocs(collection(db, "users", user.uid, "jobs"));
+          for(const d of jobsSnap.docs) await firestoreDelete(d.ref);
+          const histSnap = await getDocs(collection(db, "users", user.uid, "history"));
+          for(const d of histSnap.docs) await firestoreDelete(d.ref);
+          const metaRef = doc(db, "users", user.uid, "meta", "profile");
+          await firestoreDelete(metaRef).catch(()=>{});
+          // Delete the Firebase Auth account
+          await deleteUser(user);
+        }
+      } catch(e) {
+        // If deleteUser fails it usually means the session is too old — force sign out
+        try { await signOut(auth); } catch(_) {}
+      }
+    }
   };
 
   const handleOnboardingComplete = async (profile) => {
