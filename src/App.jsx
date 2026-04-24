@@ -119,6 +119,32 @@ const LANG = {
     onboardingSubtitle:"Set up your business profile so your invoices look professional from day one.",
     onboardingSkip:"Skip for now",
     onboardingFinish:"Let's Go →",
+    // Sort bar
+    sortDefault:"Default", sortNewest:"Newest", sortOldest:"Oldest", sortHigh:"$ High", sortLow:"$ Low", sortAZ:"A–Z",
+    // Filter button
+    filter:"Filter",
+    // Onboarding empty state hints
+    addByVoice:"Add by Voice (Fastest)", addByVoiceSub:'Tap the mic below and say something like "Dave owes $1,200 for electrical panel"',
+    addManually:"Add Manually", addManuallySub:'Tap "+ Add Job" in the top right to fill out a quick form',
+    onboardingGuide:"Once you add your first job, this guide disappears and your dashboard takes over.",
+    // Auth screen
+    signIn:"Sign In", createAccount:"Create Account", signInBtn:"Sign In →", createAccountBtn:"Create Account →",
+    pleaseWait:"Please wait...", noAccount:"Don't have an account?", alreadyAccount:"Already have an account?",
+    signUpFree:"Sign up free",
+    // Onboarding flow
+    continueBtn:"Continue →", nextBtn:"Next →", backBtn:"← Back", skipSetup:"Skip setup",
+    // Calendar
+    noJobsDay:"no jobs",
+    // Contacts
+    noContactsYet:"No contacts yet.",
+    // Alerts dismiss
+    dismiss:"Dismiss",
+    // active alerts count
+    activeAlerts: n=>`${n} active`,
+    // Appointment time
+    appointmentTime:"Appointment Time (optional)",
+    // City/State in settings
+    city:"City", state:"State", selectState:"-- Select State --",
   },
   es: {
     jobs:"Trabajos", alerts:"Alertas", contacts:"Contactos",
@@ -193,6 +219,32 @@ const LANG = {
     onboardingSubtitle:"Configura tu perfil de negocio para que tus facturas se vean profesionales.",
     onboardingSkip:"Omitir por ahora",
     onboardingFinish:"¡Vamos →",
+    // Sort bar
+    sortDefault:"Predeterminado", sortNewest:"Más Reciente", sortOldest:"Más Antiguo", sortHigh:"$ Mayor", sortLow:"$ Menor", sortAZ:"A–Z",
+    // Filter button
+    filter:"Filtrar",
+    // Onboarding empty state hints
+    addByVoice:"Agregar por Voz (Más Rápido)", addByVoiceSub:'Toca el micrófono y di algo como "Dave debe $1,200 por panel eléctrico"',
+    addManually:"Agregar Manualmente", addManuallySub:'Toca "+ Agregar Trabajo" arriba a la derecha',
+    onboardingGuide:"Cuando agregues tu primer trabajo, esta guía desaparece y tu panel toma el control.",
+    // Auth screen
+    signIn:"Iniciar Sesión", createAccount:"Crear Cuenta", signInBtn:"Iniciar Sesión →", createAccountBtn:"Crear Cuenta →",
+    pleaseWait:"Por favor espera...", noAccount:"¿No tienes cuenta?", alreadyAccount:"¿Ya tienes cuenta?",
+    signUpFree:"Regístrate gratis",
+    // Onboarding flow
+    continueBtn:"Continuar →", nextBtn:"Siguiente →", backBtn:"← Atrás", skipSetup:"Omitir configuración",
+    // Calendar
+    noJobsDay:"sin trabajos",
+    // Contacts
+    noContactsYet:"Sin contactos aún.",
+    // Alerts dismiss
+    dismiss:"Descartar",
+    // active alerts count
+    activeAlerts: n=>`${n} activas`,
+    // Appointment time
+    appointmentTime:"Hora de Cita (opcional)",
+    // City/State in settings
+    city:"Ciudad", state:"Estado", selectState:"-- Seleccionar Estado --",
   }
 };
 
@@ -841,13 +893,13 @@ function OnboardingFlow({onComplete, t}) {
             {cur.field === "__citystate__" ? (
               <div>
                 <div className="ob-field">
-                  <label>City</label>
+                  <label>{t.city}</label>
                   <input className="ob-input" type="text" placeholder="e.g. Bear Creek" value={profile.city} onChange={e=>handleChange("city",e.target.value)} autoFocus/>
                 </div>
                 <div className="ob-field" style={{marginTop:10}}>
-                  <label>State</label>
+                  <label>{t.state}</label>
                   <select className="ob-input" value={profile.state} onChange={e=>handleChange("state",e.target.value)} style={{cursor:"pointer"}}>
-                    <option value="">-- Select State --</option>
+                    <option value="">{t.selectState}</option>
                     {US_STATES.map(s=><option key={s} value={s}>{US_STATES_FULL[s]||s}</option>)}
                   </select>
                 </div>
@@ -868,10 +920,10 @@ function OnboardingFlow({onComplete, t}) {
 
             <div className="ob-btns">
               <button className="fbtn" onClick={()=>setStep(s=>s+1)}>
-                {step<steps.length-1?"Continue →":"Next →"}
+                {step<steps.length-1?t.continueBtn:t.nextBtn}
               </button>
-              {step>0&&<button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>← Back</button>}
-              <button className="ob-skip" onClick={()=>onComplete(profile)}>Skip setup</button>
+              {step>0&&<button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>{t.backBtn}</button>}
+              <button className="ob-skip" onClick={()=>onComplete(profile)}>{t.skipSetup}</button>
             </div>
           </>
         ) : (
@@ -894,7 +946,7 @@ function OnboardingFlow({onComplete, t}) {
             </div>
             <div className="ob-btns">
               <button className="fbtn" onClick={()=>onComplete(profile)}>{t.onboardingFinish}</button>
-              <button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>← Back</button>
+              <button className="fbtn-sec" onClick={()=>setStep(s=>s-1)}>{t.backBtn}</button>
               <button className="ob-skip" onClick={()=>onComplete(profile)}>{t.onboardingSkip}</button>
             </div>
           </>
@@ -974,13 +1026,13 @@ function SettingsPanel({onClose, lang, setLang, t, profile, onSaveProfile}) {
               </div>
             ))}
             <div style={{marginBottom:14}}>
-              <label className="flabel">City</label>
+              <label className="flabel">{t.city}</label>
               <input className="finput" type="text" placeholder="e.g. Bear Creek" value={draft.city||""} onChange={e=>setDraft(p=>({...p,city:e.target.value}))}/>
             </div>
             <div style={{marginBottom:14}}>
-              <label className="flabel">State</label>
+              <label className="flabel">{t.state}</label>
               <select className="finput" value={draft.state||""} onChange={e=>setDraft(p=>({...p,state:e.target.value}))} style={{cursor:"pointer"}}>
-                <option value="">-- Select State --</option>
+                <option value="">{t.selectState}</option>
                 {US_STATES.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -1106,8 +1158,8 @@ function OnboardingEmpty({onAddJob, t}) {
             <MicIcon c="var(--accent)" s={18}/>
           </div>
           <div className="onboarding-hint-text">
-            <div className="onboarding-hint-label">Add by Voice (Fastest)</div>
-            <div className="onboarding-hint-sub">Tap the mic below and say something like "Dave owes $1,200 for electrical panel"</div>
+            <div className="onboarding-hint-label">{t.addByVoice}</div>
+            <div className="onboarding-hint-sub">{t.addByVoiceSub}</div>
           </div>
         </div>
 
@@ -1125,8 +1177,8 @@ function OnboardingEmpty({onAddJob, t}) {
             <PlusIcon c="var(--blue)" s={18}/>
           </div>
           <div className="onboarding-hint-text">
-            <div className="onboarding-hint-label">Add Manually</div>
-            <div className="onboarding-hint-sub">Tap "+ Add Job" in the top right to fill out a quick form</div>
+            <div className="onboarding-hint-label">{t.addManually}</div>
+            <div className="onboarding-hint-sub">{t.addManuallySub}</div>
           </div>
         </div>
       </div>
@@ -1266,7 +1318,7 @@ function CalendarTab({jobs, t}) {
         <div className="cal-jobs-panel">
           <div className="cal-jobs-hdr">
             {viewDate.toLocaleDateString("en-US",{month:"long"})} {selectedDay}
-            {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— no jobs</span>}
+            {selectedJobs.length===0 && <span style={{fontWeight:400,fontSize:13,color:"var(--muted)",marginLeft:8}}>— {t.noJobsDay}</span>}
           </div>
           {selectedJobs.map((j,idx)=>{
             const time = jobTime(j);
@@ -1328,6 +1380,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [pdfJob, setPdfJob] = useState(null);
   const [jobSort, setJobSort] = useState("none"); // "none"|"date-asc"|"date-desc"|"amount-asc"|"amount-desc"|"name-asc"
+  const [showFilters, setShowFilters] = useState(false);
 
   const defaultProfile = {ownerName:"",businessName:"",phone:"",email:"",city:"",state:"",license:"",logo:""};
   const [businessProfile, setBusinessProfile] = useState(defaultProfile);
@@ -1514,15 +1567,21 @@ export default function App() {
 
   const filterCfg      = FILTERS.find(f=>f.key===jobFilter);
   const baseFiltered   = jobs.filter(filterCfg.match).filter(j=>!search||j.client.toLowerCase().includes(search.toLowerCase())||j.type.toLowerCase().includes(search.toLowerCase()));
+  const parseJobDate = (j) => {
+    // Try paymentDue first (ISO format: YYYY-MM-DD), then date string (e.g. "Mar 12")
+    const raw = j.paymentDue || j.date;
+    if(!raw) return new Date(8640000000000000); // no date → sort last
+    if(raw.includes("-")) return new Date(raw); // ISO date
+    const yr = new Date().getFullYear();
+    const parsed = new Date(`${raw}, ${yr}`);
+    return isNaN(parsed) ? new Date(8640000000000000) : parsed;
+  };
   const filteredJobs   = [...baseFiltered].sort((a,b)=>{
     if(jobSort==="name-asc")      return a.client.localeCompare(b.client);
     if(jobSort==="amount-desc")   return b.amount - a.amount;
     if(jobSort==="amount-asc")    return a.amount - b.amount;
-    if(jobSort==="date-asc"||jobSort==="date-desc") {
-      const da = new Date(a.date+", "+new Date().getFullYear());
-      const db2= new Date(b.date+", "+new Date().getFullYear());
-      return jobSort==="date-asc" ? da-db2 : db2-da;
-    }
+    if(jobSort==="date-asc")      return parseJobDate(a) - parseJobDate(b);
+    if(jobSort==="date-desc")     return parseJobDate(b) - parseJobDate(a);
     return 0;
   });
   const contacts       = jobs.map((j,i)=>({id:j.id,name:j.client,initials:getInitials(j.client),color:COLORS[i%COLORS.length],jobType:j.type,amount:j.amount,status:j.status,phone:j.phone}));
@@ -1807,36 +1866,41 @@ export default function App() {
               </div>
             </div>
 
-            <div className="filter-bar">
-              {FILTERS.map(f=>(
-                <button key={f.key} className={`fpill ${f.pillClass} ${jobFilter===f.key?"on":""}`} onClick={()=>goToFilter(f.key)}>{f.pill}</button>
-              ))}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:showFilters?8:14}}>
+              <button
+                className={`sort-pill ${showFilters||jobFilter!=="all"?"active":""}`}
+                style={{display:"flex",alignItems:"center",gap:5}}
+                onClick={()=>setShowFilters(v=>!v)}
+              >
+                <FilterIcon c={showFilters||jobFilter!=="all"?"var(--accent)":"var(--muted)"} s={11}/>
+                {t.filter}{jobFilter!=="all"?` · ${filterCfg.label}`:""}
+              </button>
+              {jobFilter!=="all"&&(
+                <button className="filter-clear" style={{fontSize:12}} onClick={()=>{setJobFilter("all");setShowFilters(false);}}>{t.clearFilter}</button>
+              )}
             </div>
+
+            {showFilters&&(
+              <div className="filter-bar">
+                {FILTERS.map(f=>(
+                  <button key={f.key} className={`fpill ${f.pillClass} ${jobFilter===f.key?"on":""}`} onClick={()=>{goToFilter(f.key);setShowFilters(false);}}>{f.pill}</button>
+                ))}
+              </div>
+            )}
 
             <div className="sort-bar">
               <SortIcon c="var(--muted)" s={13}/>
               {[
-                {key:"none",       label:"Default"},
-                {key:"date-desc",  label:"Newest"},
-                {key:"date-asc",   label:"Oldest"},
-                {key:"amount-desc",label:"$ High"},
-                {key:"amount-asc", label:"$ Low"},
-                {key:"name-asc",   label:"A–Z"},
+                {key:"none",       label:t.sortDefault},
+                {key:"date-desc",  label:t.sortNewest},
+                {key:"date-asc",   label:t.sortOldest},
+                {key:"amount-desc",label:t.sortHigh},
+                {key:"amount-asc", label:t.sortLow},
+                {key:"name-asc",   label:t.sortAZ},
               ].map(s=>(
                 <button key={s.key} className={`sort-pill ${jobSort===s.key?"active":""}`} onClick={()=>setJobSort(s.key)}>{s.label}</button>
               ))}
             </div>
-
-            {jobFilter!=="all"&&!search&&(
-              <div className="filter-banner">
-                <div className="filter-banner-left">
-                  <FilterIcon c={jobFilter==="owed"?"#ef4444":jobFilter==="paid"?"#22c55e":jobFilter==="quoted"?"#eab308":"#3b82f6"} s={12}/>
-                  <span style={{color:jobFilter==="owed"?"#ef4444":jobFilter==="paid"?"#22c55e":jobFilter==="quoted"?"#eab308":"#3b82f6"}}>{filterCfg.label}</span>
-                  <span style={{color:"#6b7280"}}>({filteredJobs.length})</span>
-                </div>
-                <button className="filter-clear" onClick={()=>setJobFilter("all")}>{t.clearFilter}</button>
-              </div>
-            )}
 
             {/* ── ONBOARDING EMPTY STATE ── */}
             {jobs.length===0 && !search ? (
@@ -1864,7 +1928,7 @@ export default function App() {
                     {expanded===j.id&&(
                       <div className="drawer" onClick={e=>e.stopPropagation()}>
                         <div className="drawer-actions">
-                          {j.phone&&<button className="daction da-call"><PhoneIcon c="#3b82f6"/> {t.call}</button>}
+                          {j.phone&&<a href={`tel:${j.phone.replace(/\D/g,"")}`} className="daction da-call" style={{textDecoration:"none"}} onClick={e=>e.stopPropagation()}><PhoneIcon c="#3b82f6"/> {t.call}</a>}
                           {(j.status==="unpaid"||j.status==="overdue")&&<button className="daction da-remind" onClick={e=>handleRemind(j.client,e)}><BellIcon c="var(--accent)" s={13}/> {t.remind}</button>}
                           <button className="daction da-pdf" onClick={e=>{e.stopPropagation();setPdfJob(j);}}><FileIcon c="var(--green)"/> {t.invoice}</button>
                           <button className="daction da-edit" onClick={e=>openEdit(j,e)}><ZapIcon c="#a855f7" s={13}/> {t.edit}</button>
@@ -1892,7 +1956,7 @@ export default function App() {
           <div className="sec" ref={alertsRef}>
             <div className="sec-hdr">
               <div className="sec-title">{t.aiAlerts}</div>
-              {activeAlerts.length>0&&<span style={{fontSize:12,color:"#ef4444",fontWeight:600}}>{activeAlerts.length} active</span>}
+              {activeAlerts.length>0&&<span style={{fontSize:12,color:"#ef4444",fontWeight:600}}>{t.activeAlerts(activeAlerts.length)}</span>}
             </div>
             {activeAlerts.length===0&&<div className="empty">{t.noAlerts}</div>}
             {activeAlerts.map(a=>(
@@ -1907,7 +1971,7 @@ export default function App() {
                   <div className="adesc">{a.desc}</div>
                   <div style={{display:"flex",gap:8,marginTop:8}}>
                     <button className="aact" onClick={()=>handleAlertAction(a)}>{a.action}</button>
-                    <button className="aact" style={{color:"#6b7280"}} onClick={()=>dismissAlert(a.id,a.title)}>Dismiss</button>
+                    <button className="aact" style={{color:"#6b7280"}} onClick={()=>dismissAlert(a.id,a.title)}>{t.dismiss}</button>
                   </div>
                 </div>
               </div>
@@ -1926,7 +1990,7 @@ export default function App() {
             <div className="sec-hdr">
               <div className="sec-title">{search?t.results(search):"Contacts"}</div>
             </div>
-            {filteredContacts.length===0&&<div className="empty">{search?t.noContacts(search):"No contacts yet."}</div>}
+            {filteredContacts.length===0&&<div className="empty">{search?t.noContacts(search):t.noContactsYet}</div>}
             {filteredContacts.map(c=>(
               <div key={c.id} className={`ccard ${expanded===("c"+c.id)?"open":""}`} onClick={()=>toggle("c"+c.id)}>
                 <div className="cmain">
@@ -1943,7 +2007,7 @@ export default function App() {
                 {expanded===("c"+c.id)&&(
                   <div className="cdrawer" onClick={e=>e.stopPropagation()}>
                     {c.phone&&<span style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--muted)"}}><PhoneIcon c="var(--muted)"/>{c.phone}</span>}
-                    <button className="daction da-call"><PhoneIcon c="#3b82f6"/> {t.call}</button>
+                    {c.phone&&<a href={`tel:${c.phone.replace(/\D/g,"")}`} className="daction da-call" style={{textDecoration:"none"}}><PhoneIcon c="#3b82f6"/> {t.call}</a>}
                     <button className="daction da-remind" onClick={e=>handleRemind(c.name,e)}><BellIcon c="var(--accent)" s={13}/> {t.remind}</button>
                     <button className="daction da-edit" onClick={e=>{ const job=jobs.find(j=>j.id===c.id); if(job) openEdit(job,e); }}><ZapIcon c="#a855f7" s={13}/> {t.edit}</button>
                   </div>
@@ -2244,7 +2308,7 @@ export default function App() {
               )}
               {form.recurring==="none"&&(
                 <>
-                  <label className="flabel">Appointment Time (optional)</label>
+                  <label className="flabel">{t.appointmentTime}</label>
                   <input className="finput" type="time" value={form.appointmentTime||""} onChange={e=>setForm(p=>({...p,appointmentTime:e.target.value}))}/>
                 </>
               )}
@@ -2311,7 +2375,7 @@ export default function App() {
               )}
               {(!editJob.recurring||editJob.recurring==="none")&&(
                 <>
-                  <label className="flabel">Appointment Time (optional)</label>
+                  <label className="flabel">{t.appointmentTime}</label>
                   <input className="finput" type="time" value={editJob.appointmentTime||""} onChange={e=>setEditJob(p=>({...p,appointmentTime:e.target.value}))}/>
                 </>
               )}
