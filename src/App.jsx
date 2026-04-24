@@ -1568,13 +1568,17 @@ export default function App() {
   const filterCfg      = FILTERS.find(f=>f.key===jobFilter);
   const baseFiltered   = jobs.filter(filterCfg.match).filter(j=>!search||j.client.toLowerCase().includes(search.toLowerCase())||j.type.toLowerCase().includes(search.toLowerCase()));
   const parseJobDate = (j) => {
-    // Try paymentDue first (ISO format: YYYY-MM-DD), then date string (e.g. "Mar 12")
-    const raw = j.paymentDue || j.date;
-    if(!raw) return new Date(8640000000000000); // no date → sort last
-    if(raw.includes("-")) return new Date(raw); // ISO date
-    const yr = new Date().getFullYear();
-    const parsed = new Date(`${raw}, ${yr}`);
-    return isNaN(parsed) ? new Date(8640000000000000) : parsed;
+    // Use paymentDue (ISO: YYYY-MM-DD) if set
+    if(j.paymentDue) return new Date(j.paymentDue);
+    // Use the date field (e.g. "Apr 16" or "Apr 16, 2025")
+    if(j.date) {
+      const yr = new Date().getFullYear();
+      const raw = j.date.includes(",") ? j.date : `${j.date}, ${yr}`;
+      const parsed = new Date(raw);
+      if(!isNaN(parsed)) return parsed;
+    }
+    // No date → sort last
+    return new Date(8640000000000000);
   };
   const filteredJobs   = [...baseFiltered].sort((a,b)=>{
     if(jobSort==="name-asc")      return a.client.localeCompare(b.client);
@@ -1866,41 +1870,44 @@ export default function App() {
               </div>
             </div>
 
+            <div className="filter-bar">
+              {FILTERS.map(f=>(
+                <button key={f.key} className={`fpill ${f.pillClass} ${jobFilter===f.key?"on":""}`} onClick={()=>goToFilter(f.key)}>{f.pill}</button>
+              ))}
+            </div>
+
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:showFilters?8:14}}>
               <button
-                className={`sort-pill ${showFilters||jobFilter!=="all"?"active":""}`}
+                className={`sort-pill ${showFilters||jobSort!=="none"?"active":""}`}
                 style={{display:"flex",alignItems:"center",gap:5}}
                 onClick={()=>setShowFilters(v=>!v)}
               >
-                <FilterIcon c={showFilters||jobFilter!=="all"?"var(--accent)":"var(--muted)"} s={11}/>
-                {t.filter}{jobFilter!=="all"?` · ${filterCfg.label}`:""}
+                <FilterIcon c={showFilters||jobSort!=="none"?"var(--accent)":"var(--muted)"} s={11}/>
+                {t.filter}{jobSort!=="none"?` · ${[
+                  {key:"date-desc",label:t.sortNewest},{key:"date-asc",label:t.sortOldest},
+                  {key:"amount-desc",label:t.sortHigh},{key:"amount-asc",label:t.sortLow},{key:"name-asc",label:t.sortAZ}
+                ].find(s=>s.key===jobSort)?.label||""}` : ""}
               </button>
-              {jobFilter!=="all"&&(
-                <button className="filter-clear" style={{fontSize:12}} onClick={()=>{setJobFilter("all");setShowFilters(false);}}>{t.clearFilter}</button>
+              {jobSort!=="none"&&(
+                <button className="filter-clear" style={{fontSize:12}} onClick={()=>{setJobSort("none");setShowFilters(false);}}>{t.clearFilter}</button>
               )}
             </div>
 
             {showFilters&&(
-              <div className="filter-bar">
-                {FILTERS.map(f=>(
-                  <button key={f.key} className={`fpill ${f.pillClass} ${jobFilter===f.key?"on":""}`} onClick={()=>{goToFilter(f.key);setShowFilters(false);}}>{f.pill}</button>
+              <div className="sort-bar">
+                <SortIcon c="var(--muted)" s={13}/>
+                {[
+                  {key:"none",       label:t.sortDefault},
+                  {key:"date-desc",  label:t.sortNewest},
+                  {key:"date-asc",   label:t.sortOldest},
+                  {key:"amount-desc",label:t.sortHigh},
+                  {key:"amount-asc", label:t.sortLow},
+                  {key:"name-asc",   label:t.sortAZ},
+                ].map(s=>(
+                  <button key={s.key} className={`sort-pill ${jobSort===s.key?"active":""}`} onClick={()=>{setJobSort(s.key);setShowFilters(false);}}>{s.label}</button>
                 ))}
               </div>
             )}
-
-            <div className="sort-bar">
-              <SortIcon c="var(--muted)" s={13}/>
-              {[
-                {key:"none",       label:t.sortDefault},
-                {key:"date-desc",  label:t.sortNewest},
-                {key:"date-asc",   label:t.sortOldest},
-                {key:"amount-desc",label:t.sortHigh},
-                {key:"amount-asc", label:t.sortLow},
-                {key:"name-asc",   label:t.sortAZ},
-              ].map(s=>(
-                <button key={s.key} className={`sort-pill ${jobSort===s.key?"active":""}`} onClick={()=>setJobSort(s.key)}>{s.label}</button>
-              ))}
-            </div>
 
             {/* ── ONBOARDING EMPTY STATE ── */}
             {jobs.length===0 && !search ? (
