@@ -571,8 +571,8 @@ const RECURRING_OPTIONS = ["none","weekly","biweekly","monthly"];
 const getInitials = n => n.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
 const fmt = n => "$"+Number(n).toLocaleString();
 const badgeClass = s => ({paid:"b-paid",unpaid:"b-unpaid",quoted:"b-quoted",scheduled:"b-scheduled",overdue:"b-overdue"}[s]||"b-unpaid");
-const todayStr = () => new Date().toISOString().split("T")[0]; // YYYY-MM-DD for date inputs
-const fmtDate = (d) => { if(!d) return ""; if(d.includes("-")) { const [y,m,day] = d.split("-"); const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m)-1]} ${parseInt(day)}`; } return d; };
+const todayStr = () => new Date().toISOString().split("T")[0];
+const fmtDate = (d) => { if(!d) return ""; if(d.includes("-")) { const [,m,day] = d.split("-"); const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${months[parseInt(m)-1]} ${parseInt(day)}`; } return d; };
 const invNum = id => "INV-"+String(id).slice(-4).padStart(4,"0");
 const voiceSupported = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 const formatTime = (t) => { if(!t) return ""; const [h,m]=t.split(":"); const hr=parseInt(h); return `${hr>12?hr-12:hr||12}:${m} ${hr>=12?"PM":"AM"}`; };
@@ -1569,12 +1569,9 @@ export default function App() {
   const filterCfg      = FILTERS.find(f=>f.key===jobFilter);
   const baseFiltered   = jobs.filter(filterCfg.match).filter(j=>!search||j.client.toLowerCase().includes(search.toLowerCase())||j.type.toLowerCase().includes(search.toLowerCase()));
   const parseJobDate = (j) => {
-    // Use paymentDue (ISO: YYYY-MM-DD) if set
     if(j.paymentDue) return new Date(j.paymentDue + "T00:00:00");
     if(j.date) {
-      // ISO format (new): YYYY-MM-DD
       if(j.date.includes("-")) return new Date(j.date + "T00:00:00");
-      // Legacy format: "Apr 16" or "Apr 16, 2025"
       const yr = new Date().getFullYear();
       const raw = j.date.includes(",") ? j.date : `${j.date}, ${yr}`;
       const parsed = new Date(raw);
@@ -2164,7 +2161,7 @@ export default function App() {
               <input className="finput" placeholder="e.g. HVAC Install" value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))}/>
               <div className="frow">
                 <div><label className="flabel">{t.amountDollar}</label><input className="finput" type="number" placeholder="0" value={form.amount} onChange={e=>setForm(p=>({...p,amount:e.target.value}))}/></div>
-                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/</div>
+                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
               </div>
               <label className="flabel">{t.status}</label>
               <select className="finput" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
@@ -2210,7 +2207,7 @@ export default function App() {
             <input className="finput" value={parsed.type||""} onChange={e=>setParsed(p=>({...p,type:e.target.value}))}/>
             <div className="frow">
               <div><label className="flabel">{t.amountDollar}</label><input className="finput" type="number" value={parsed.amount||""} onChange={e=>setParsed(p=>({...p,amount:e.target.value}))}/></div>
-              <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={parsed.date||""} onChange={e=>setParsed(p=>({...p,date:e.target.value}))}/</div>
+              <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={parsed.date||""} onChange={e=>setParsed(p=>({...p,date:e.target.value}))}/></div>
             </div>
             <label className="flabel">{t.phone}</label>
             <input className="finput" placeholder="(555) 000-0000" value={parsed.phone||""} onChange={e=>setParsed(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
@@ -2278,7 +2275,7 @@ export default function App() {
               <input className="finput" placeholder="e.g. HVAC Install" value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))}/>
               <div className="frow">
                 <div><label className="flabel">{t.amountDollar}</label><input className="finput" type="number" placeholder="0" value={form.amount} onChange={e=>setForm(p=>({...p,amount:e.target.value}))}/></div>
-                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/</div>
+                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
               </div>
               <label className="flabel">{t.phone}</label>
               <input className="finput" placeholder="(555) 000-0000" value={form.phone} onChange={e=>setForm(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
@@ -2345,7 +2342,7 @@ export default function App() {
               <input className="finput" value={editJob.type} onChange={e=>setEditJob(p=>({...p,type:e.target.value}))}/>
               <div className="frow">
                 <div><label className="flabel">{t.amountDollar}</label><input className="finput" type="number" value={editJob.amount} onChange={e=>setEditJob(p=>({...p,amount:e.target.value}))}/></div>
-                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={editJob.date||""} onChange={e=>setEditJob(p=>({...p,date:e.target.value}))}/</div>
+                <div><label className="flabel">{t.date}</label><input className="finput" type="date" value={editJob.date||""} onChange={e=>setEditJob(p=>({...p,date:e.target.value}))}/></div>
               </div>
               <label className="flabel">{t.phone}</label>
               <input className="finput" placeholder="(555) 000-0000" value={editJob.phone||""} onChange={e=>setEditJob(p=>({...p,phone:fmtPhone(e.target.value)}))}/>
