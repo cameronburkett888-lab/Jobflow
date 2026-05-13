@@ -8,7 +8,7 @@ export default async function handler(req, res) {
  
     // Inject today's date into the system prompt so the AI can resolve
     // relative dates like "tomorrow", "next Friday", "in 3 days", etc.
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const _d = new Date(); const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
     const dateContext = `Today's date is ${today}. When the user mentions relative dates like "tomorrow", "next Friday", "in 3 days", "next week", etc., resolve them to an exact YYYY-MM-DD date based on today's date. Always return dates in YYYY-MM-DD format.`;
  
     if (body.system) {
@@ -35,4 +35,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API call failed' });
   }
 }
- 
