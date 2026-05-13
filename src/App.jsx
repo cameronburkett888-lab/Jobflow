@@ -145,6 +145,15 @@ const LANG = {
     appointmentTime:"Appointment Time (optional)",
     // City/State in settings
     city:"City", state:"State", selectState:"-- Select State --",
+    // Hardcoded strings
+    tapClear:"tap to clear",
+    historySubtitle: n=>`${n} archived · tap to restore`,
+    recurringCreatedTitle:"Recurring Job Created",
+    recurringCreatedMsg: (interval,client,date)=>`Next ${interval} job for ${client} has been scheduled for ${date}.`,
+    reminderSentTitle:"Reminder Sent!", reminderSentMsg: c=>`Payment reminder sent to ${c}.`,
+    followUpTitle:"Follow-Up Queued", followUpMsg: c=>`Follow-up scheduled for ${c}.`,
+    pdfReadyTitle:"PDF Ready!", pdfReadyMsg:"Invoice has been prepared for download/send.",
+    listeningTitle:"Listening...",
   },
   es: {
     jobs:"Trabajos", alerts:"Alertas", contacts:"Contactos",
@@ -206,7 +215,7 @@ const LANG = {
     weekly:"Semanal", biweekly:"Quincenal", monthly:"Mensual",
     recurringBadge:"Recurrente",
     recurringDay:"Día Recurrente", recurringTime:"Hora Recurrente",
-    dayOfMonth:"Día del Mes (1–28)", dayOfWeek:"Día de la Semana",
+    dayOfMonth:"Día del Mes (1–31)", dayOfWeek:"Día de la Semana",
     days:["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
     deleteJobTitle:"Eliminar Trabajo", deletePermTitle:"Eliminar Permanentemente", deletePermMsg:"Esto eliminará el trabajo para siempre.",
     moveHistTitle:"Mover al Historial", moveHistMsg:"El trabajo se archivará. Puedes restaurarlo cuando quieras.",
@@ -245,6 +254,15 @@ const LANG = {
     appointmentTime:"Hora de Cita (opcional)",
     // City/State in settings
     city:"Ciudad", state:"Estado", selectState:"-- Seleccionar Estado --",
+    // Hardcoded strings
+    tapClear:"toca para limpiar",
+    historySubtitle: n=>`${n} archivados · toca para restaurar`,
+    recurringCreatedTitle:"Trabajo Recurrente Creado",
+    recurringCreatedMsg: (interval,client,date)=>`El próximo trabajo ${interval} para ${client} ha sido programado para ${date}.`,
+    reminderSentTitle:"¡Recordatorio Enviado!", reminderSentMsg: c=>`Recordatorio de pago enviado a ${c}.`,
+    followUpTitle:"Seguimiento Programado", followUpMsg: c=>`Seguimiento programado para ${c}.`,
+    pdfReadyTitle:"¡PDF Listo!", pdfReadyMsg:"La factura ha sido preparada para descargar/enviar.",
+    listeningTitle:"Escuchando...",
   }
 };
 
@@ -703,7 +721,7 @@ async function parseJobWithAI(text) {
   const r = await fetch("/api/chat",{
     method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,
-      messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (e.g. Apr 20), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-28 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string). Voice note: "${text}"`}]
+      messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (YYYY-MM-DD — resolve relative dates like "tomorrow", "next Friday", "in 3 days" to exact YYYY-MM-DD using today's date from system prompt, empty string if no date), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-31 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string), appointmentTime (24hr time like 09:00 if appointment time mentioned and not recurring else empty string). Voice note: "${text}"`}]
     })
   });
   const d = await r.json();
@@ -1599,8 +1617,8 @@ export default function App() {
   const undoDismiss = () => { if(!toast) return; setDismissed(d=>d.filter(x=>x!==toast.id)); setToast(null); };
 
   const handleAlertAction = a => {
-    if(a.action==="Send Reminder") setConfirm({icon:"📨",title:"Reminder Sent!",msg:`Payment reminder sent to ${a.client}.`});
-    else if(a.action==="Follow Up") setConfirm({icon:"📞",title:"Follow-Up Queued",msg:`Follow-up scheduled for ${a.client}.`});
+    if(a.action==="Send Reminder") setConfirm({icon:"📨",title:t.reminderSentTitle,msg:t.reminderSentMsg(a.client)});
+    else if(a.action==="Follow Up") setConfirm({icon:"📞",title:t.followUpTitle,msg:t.followUpMsg(a.client)});
     else if(a.action==="Mark Ready") {
       // Find the job and open it for editing so user can update status
       const job = jobs.find(j=>j.client===a.client);
@@ -1610,7 +1628,7 @@ export default function App() {
     else if(a.action==="Dismiss") dismissAlert(a.id, a.title);
   };
 
-  const handleRemind = (client,e) => { e.stopPropagation(); setConfirm({icon:"📨",title:"Reminder Sent!",msg:`Payment reminder sent to ${client}.`}); };
+  const handleRemind = (client,e) => { e.stopPropagation(); setConfirm({icon:"📨",title:t.reminderSentTitle,msg:t.reminderSentMsg(client)}); };
   const changeStatus = (id,status,e) => { e.stopPropagation(); setJobs(prev=>prev.map(j=>j.id===id?{...j,status}:j)); };
 
   // ── RECURRING: when job is marked paid, auto-create next job ─────────────
@@ -1635,7 +1653,7 @@ export default function App() {
       setTimeout(()=>{
         setJobs(prev=>[nextJob,...prev]);
         saveJobToFirestore(nextJob);
-        setConfirm({icon:"🔁",title:"Recurring Job Created",msg:`Next ${job.recurring} job for ${job.client} has been scheduled for ${nextDate}.`});
+        setConfirm({icon:"🔁",title:t.recurringCreatedTitle,msg:t.recurringCreatedMsg(job.recurring,job.client,nextDate)});
       },300);
     }
   };
@@ -1832,25 +1850,25 @@ export default function App() {
             <div className="stat-lbl">{t.moneyOwed}</div>
             <div className="stat-val c-red">{fmt(owed)}</div>
             <div className="stat-sub">{jobs.filter(j=>j.status==="unpaid"||j.status==="overdue").length} {t.awaiting}</div>
-            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="owed"?"tap to clear":t.tapFilter}</div>
+            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="owed"?t.tapClear:t.tapFilter}</div>
           </div>
           <div className={`stat ${jobFilter==="paid"?"af-green":""}`} onClick={()=>goToFilter("paid")}>
             <div className="stat-lbl">{t.collected}</div>
             <div className="stat-val c-green">{fmt(collected)}</div>
             <div className="stat-sub">{jobs.filter(j=>j.status==="paid").length} {t.paidJobs}</div>
-            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="paid"?"tap to clear":t.tapFilter}</div>
+            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="paid"?t.tapClear:t.tapFilter}</div>
           </div>
           <div className={`stat ${jobFilter==="quoted"?"af-yellow":""}`} onClick={()=>goToFilter("quoted")}>
             <div className="stat-lbl">{t.openQuotes}</div>
             <div className="stat-val c-yellow">{fmt(quoted)}</div>
             <div className="stat-sub">{jobs.filter(j=>j.status==="quoted").length} {t.awaiting}</div>
-            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="quoted"?"tap to clear":t.tapFilter}</div>
+            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="quoted"?t.tapClear:t.tapFilter}</div>
           </div>
           <div className={`stat ${jobFilter==="scheduled"?"af-blue":""}`} onClick={()=>goToFilter("scheduled")}>
             <div className="stat-lbl">{t.upcoming}</div>
             <div className="stat-val c-blue">{fmt(upcoming)}</div>
             <div className="stat-sub">{jobs.filter(j=>j.status==="scheduled").length} {t.scheduled}</div>
-            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="scheduled"?"tap to clear":t.tapFilter}</div>
+            <div className="stat-tap"><FilterIcon c="#6b7280" s={10}/> {jobFilter==="scheduled"?t.tapClear:t.tapFilter}</div>
           </div>
         </div>
 
@@ -1994,7 +2012,7 @@ export default function App() {
         {tab==="Contacts"&&(
           <div className="sec">
             <div className="sec-hdr">
-              <div className="sec-title">{search?t.results(search):"Contacts"}</div>
+              <div className="sec-title">{search?t.results(search):t.contacts}</div>
             </div>
             {filteredContacts.length===0&&<div className="empty">{search?t.noContacts(search):t.noContactsYet}</div>}
             {filteredContacts.map(c=>(
@@ -2107,7 +2125,7 @@ export default function App() {
                 <div className="mtitle"><HistoryIcon c="var(--accent)" s={20}/> {t.history}</div>
                 <button style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}} onClick={()=>setShowHistory(false)}><XIcon/></button>
               </div>
-              <div className="msub">{jobHistory.length} archived · tap to restore</div>
+              <div className="msub">{t.historySubtitle(jobHistory.length)}</div>
               {jobHistory.length===0&&<div className="empty">{t.historyEmpty}</div>}
               {jobHistory.map(j=>(
                 <div key={j.id} className="jcard history-card">
@@ -2141,7 +2159,7 @@ export default function App() {
                 <button style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280"}} onClick={()=>setPdfJob(null)}><XIcon/></button>
               </div>
               <InvoicePreview job={pdfJob} profile={businessProfile}/>
-              <button className="fbtn" onClick={()=>{setConfirm({icon:"📄",title:"PDF Ready!",msg:"Invoice has been prepared for download/send."});setPdfJob(null);}}>{t.downloadSend}</button>
+              <button className="fbtn" onClick={()=>{setConfirm({icon:"📄",title:t.pdfReadyTitle,msg:t.pdfReadyMsg});setPdfJob(null);}}>{t.downloadSend}</button>
               <button className="fbtn-sec" onClick={()=>setPdfJob(null)}>{t.close}</button>
             </div>
           </div>
@@ -2178,7 +2196,7 @@ export default function App() {
           <div className="overlay" style={{top:70,backdropFilter:"none",background:"rgba(0,0,0,.6)"}}>
             <div className="modal">
               <div className="mhandle"/>
-              <div className="mtitle" style={{color:"#ef4444"}}><MicIcon c="#ef4444" s={20}/> Listening...</div>
+              <div className="mtitle" style={{color:"#ef4444"}}><MicIcon c="#ef4444" s={20}/> {t.listeningTitle}</div>
               <div className="msub">{t.sayLike}<br/><em style={{color:"#e8eaf0"}}>{t.exampleVoice}</em></div>
               {transcript&&<div style={{fontSize:13,color:"var(--muted)",fontStyle:"italic",margin:"8px 0",lineHeight:1.5}}>"{transcript}"</div>}
               <div className="vbars">{[0,1,2,3,4,5].map(i=><div key={i} className="vbar" style={{animationDelay:`${i*.1}s`}}/>)}</div>
