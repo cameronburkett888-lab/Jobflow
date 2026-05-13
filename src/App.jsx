@@ -393,6 +393,8 @@ body{background:var(--bg);font-family:'Barlow',sans-serif;color:var(--text)}
 .ni.active{color:var(--accent)}
 .nav-badge{position:absolute;top:0;right:calc(50% - 22px);background:var(--red);color:#fff;font-size:9px;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px 24px;width:100%;max-width:400px;text-align:center;animation:slideUp .2s ease}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
 @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal{animation:slideUp .2s ease}
@@ -2528,20 +2530,20 @@ export default function App() {
         {showSettings&&(
           <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t} profile={businessProfile} onSaveProfile={handleSaveProfile}/>
         )}
-
-        {/* FREE TIER CAP MODAL */}
-        {showFreeTierModal&&(
-          <div className="modal-overlay" onClick={()=>setShowFreeTierModal(false)}>
-            <div className="modal-box" onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:36,marginBottom:12}}>🔒</div>
-              <div className="mtitle">{t.freeTierTitle}</div>
-              <div className="msub" style={{marginTop:8,marginBottom:20,lineHeight:1.5}}>{t.freeTierMsg}</div>
-              <button className="fbtn" style={{background:"var(--accent)",color:"#0f1117",marginBottom:10}} onClick={()=>setShowFreeTierModal(false)}>{t.freeTierUpgrade}</button>
-              <button className="fbtn-sec" onClick={()=>setShowFreeTierModal(false)}>{t.freeTierDismiss}</button>
-            </div>
-          </div>
-        )}
       </div>
+      )}
+
+      {/* FREE TIER CAP MODAL — outside .app so fixed positioning is never clipped */}
+      {!authLoading && user && !profileLoading && !showOnboarding && showFreeTierModal&&(
+        <div className="modal-overlay" onClick={()=>setShowFreeTierModal(false)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:40,marginBottom:14}}>🔒</div>
+            <div className="mtitle" style={{justifyContent:"center"}}>{t.freeTierTitle}</div>
+            <div className="msub" style={{marginTop:8,marginBottom:20,lineHeight:1.6}}>{t.freeTierMsg}</div>
+            <button className="fbtn" style={{background:"var(--accent)",color:"#0f1117",marginBottom:10}} onClick={()=>setShowFreeTierModal(false)}>{t.freeTierUpgrade}</button>
+            <button className="fbtn-sec" onClick={()=>setShowFreeTierModal(false)}>{t.freeTierDismiss}</button>
+          </div>
+        </div>
       )}
     </>
   );
