@@ -717,12 +717,89 @@ const buildDynamicAlerts = (jobs) => {
   return alerts;
 };
 
+// ── SMART DATE RESOLVER ──────────────────────────────────────────────────────
+function localToday() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function toISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function resolveRelativeDate(text) {
+  const t = text.toLowerCase();
+  const today = localToday();
+  const dow = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+  // "today"
+  if(/\btoday\b/.test(t)) return toISO(today);
+
+  // "tomorrow"
+  if(/\btomorrow\b/.test(t)) {
+    const d = new Date(today); d.setDate(d.getDate()+1); return toISO(d);
+  }
+
+  // "in X days"
+  const inDays = t.match(/\bin (\d+) days?\b/);
+  if(inDays) {
+    const d = new Date(today); d.setDate(d.getDate()+parseInt(inDays[1])); return toISO(d);
+  }
+
+  // "next week"
+  if(/\bnext week\b/.test(t)) {
+    const d = new Date(today); d.setDate(d.getDate()+7); return toISO(d);
+  }
+
+  // "this friday" / "this monday" etc — the coming occurrence of that day this week
+  const thisDay = t.match(/\bthis (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+  if(thisDay) {
+    const target = dow.indexOf(thisDay[1]);
+    const d = new Date(today);
+    let diff = target - d.getDay();
+    if(diff <= 0) diff += 7; // if today or past, go to next week
+    d.setDate(d.getDate()+diff);
+    return toISO(d);
+  }
+
+  // "next friday" / "next monday" etc — always at least 7 days out
+  const nextDay = t.match(/\bnext (sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+  if(nextDay) {
+    const target = dow.indexOf(nextDay[1]);
+    const d = new Date(today);
+    let diff = target - d.getDay();
+    if(diff <= 0) diff += 7;  // get to the upcoming occurrence
+    diff += 7;                 // then add another week for "next"
+    d.setDate(d.getDate()+diff);
+    return toISO(d);
+  }
+
+  // bare day name e.g. "friday" — treat as "this friday" (next occurrence)
+  for(let i=0;i<dow.length;i++) {
+    const re = new RegExp(`\\b${dow[i]}\\b`);
+    if(re.test(t)) {
+      const d = new Date(today);
+      let diff = i - d.getDay();
+      if(diff <= 0) diff += 7;
+      d.setDate(d.getDate()+diff);
+      return toISO(d);
+    }
+  }
+
+  return null; // no relative date found — let AI handle explicit dates
+}
+
 async function parseJobWithAI(text) {
-  const _d = new Date(); const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+  const _d = new Date();
+  const today = toISO(localToday());
+  // Pre-resolve relative dates so AI doesn't have to do calendar math
+  const resolvedDate = resolveRelativeDate(text);
+  const dateInstruction = resolvedDate
+    ? `date (use exactly "${resolvedDate}" — the relative date in the voice note has already been resolved)`
+    : `date (YYYY-MM-DD if an explicit date is mentioned, else empty string)`;
+
   const r = await fetch("/api/chat",{
     method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,
-      messages:[{role:"user",content:`Today's date is ${today}. Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (YYYY-MM-DD — if a relative date like "tomorrow", "next Friday", "in 3 days", "next week" is mentioned resolve it to an exact YYYY-MM-DD date using today's date above; if no date mentioned use empty string), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-31 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string), appointmentTime (24hr time like 09:00 if appointment time mentioned and not recurring else empty string). Voice note: "${text}"`}]
+      messages:[{role:"user",content:`Today's date is ${today}. Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), ${dateInstruction}, status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-31 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string), appointmentTime (24hr time like 09:00 if appointment time mentioned and not recurring else empty string). Voice note: "${text}"`}]
     })
   });
   const d = await r.json();
