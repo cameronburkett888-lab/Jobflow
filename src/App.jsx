@@ -718,10 +718,11 @@ const buildDynamicAlerts = (jobs) => {
 };
 
 async function parseJobWithAI(text) {
+  const today = new Date().toISOString().split("T")[0];
   const r = await fetch("/api/chat",{
     method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,
-      messages:[{role:"user",content:`Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (YYYY-MM-DD — resolve relative dates like "tomorrow", "next Friday", "in 3 days" to exact YYYY-MM-DD using today's date from system prompt, empty string if no date), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-31 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string), appointmentTime (24hr time like 09:00 if appointment time mentioned and not recurring else empty string). Voice note: "${text}"`}]
+      messages:[{role:"user",content:`Today's date is ${today}. Extract job details from this voice note. Return ONLY raw JSON with these exact keys: client (name), type (job type), amount (number only no $ sign), date (YYYY-MM-DD — if a relative date like "tomorrow", "next Friday", "in 3 days", "next week" is mentioned resolve it to an exact YYYY-MM-DD date using today's date above; if no date mentioned use empty string), status (one of: unpaid/quoted/scheduled/paid/overdue), phone (phone number or empty string), recurring (one of: none/weekly/biweekly/monthly), recurringDay (if monthly: day number 1-31 as string, if weekly/biweekly: day of week 0-6 as string 0=Sunday, else empty string), recurringTime (24hr time like 17:00 if mentioned else empty string), paymentDue (YYYY-MM-DD if payment due date mentioned else empty string), appointmentTime (24hr time like 09:00 if appointment time mentioned and not recurring else empty string). Voice note: "${text}"`}]
     })
   });
   const d = await r.json();
