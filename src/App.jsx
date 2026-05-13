@@ -154,6 +154,11 @@ const LANG = {
     followUpTitle:"Follow-Up Queued", followUpMsg: c=>`Follow-up scheduled for ${c}.`,
     pdfReadyTitle:"PDF Ready!", pdfReadyMsg:"Invoice has been prepared for download/send.",
     listeningTitle:"Listening...",
+    // Free tier cap
+    freeTierTitle:"Job Limit Reached",
+    freeTierMsg:"Free accounts can have up to 5 active jobs. Delete or archive a job to add a new one, or upgrade to Pro for unlimited jobs.",
+    freeTierUpgrade:"Upgrade to Pro",
+    freeTierDismiss:"Got It",
   },
   es: {
     jobs:"Trabajos", alerts:"Alertas", contacts:"Contactos",
@@ -263,6 +268,11 @@ const LANG = {
     followUpTitle:"Seguimiento Programado", followUpMsg: c=>`Seguimiento programado para ${c}.`,
     pdfReadyTitle:"¡PDF Listo!", pdfReadyMsg:"La factura ha sido preparada para descargar/enviar.",
     listeningTitle:"Escuchando...",
+    // Free tier cap
+    freeTierTitle:"Límite de Trabajos Alcanzado",
+    freeTierMsg:"Las cuentas gratuitas pueden tener hasta 5 trabajos activos. Elimina o archiva un trabajo para agregar uno nuevo, o actualiza a Pro para trabajos ilimitados.",
+    freeTierUpgrade:"Actualizar a Pro",
+    freeTierDismiss:"Entendido",
   }
 };
 
@@ -1566,6 +1576,10 @@ export default function App() {
   const toastTimer = useRef(null);
   const [confirm, setConfirm] = useState(null);
   const [jobActionConfirm, setJobActionConfirm] = useState(null);
+  const [showFreeTierModal, setShowFreeTierModal] = useState(false);
+
+  const FREE_TIER_LIMIT = 5;
+  const isAtFreeTierCap = () => jobs.length >= FREE_TIER_LIMIT;
 
   // Live clock
   const [now, setNow] = useState(new Date());
@@ -1729,6 +1743,7 @@ export default function App() {
         recurring: job.recurring,
       };
       setTimeout(()=>{
+        if(isAtFreeTierCap()) { setShowFreeTierModal(true); return; }
         setJobs(prev=>[nextJob,...prev]);
         saveJobToFirestore(nextJob);
         setConfirm({icon:"🔁",title:t.recurringCreatedTitle,msg:t.recurringCreatedMsg(job.recurring,job.client,nextDate)});
@@ -1794,6 +1809,7 @@ export default function App() {
   };
 
   const confirmSave = () => {
+    if(isAtFreeTierCap()) { setShowFreeTierModal(true); return; }
     const isRecurring = parsed.recurring && parsed.recurring !== "none";
     const jobDate = isRecurring && parsed.recurringDay
       ? firstOccurrenceDate(parsed.recurring, parsed.recurringDay)
@@ -1807,6 +1823,7 @@ export default function App() {
 
   const saveForm = () => {
     if(!form.client.trim()) return;
+    if(isAtFreeTierCap()) { setShowFreeTierModal(true); return; }
     const isRecurring = form.recurring && form.recurring !== "none";
     const jobDate = isRecurring && form.recurringDay
       ? firstOccurrenceDate(form.recurring, form.recurringDay)
@@ -1964,6 +1981,18 @@ export default function App() {
                 <button className="add-btn" onClick={()=>setShowForm(true)}><PlusIcon/> {t.addJob}</button>
               </div>
             </div>
+
+            {/* FREE TIER COUNTER */}
+            {jobs.length >= 4 && jobs.length < FREE_TIER_LIMIT && (
+              <div style={{fontSize:11,color:"var(--yellow)",fontWeight:600,textAlign:"right",marginBottom:6,paddingRight:2}}>
+                {FREE_TIER_LIMIT - jobs.length} free slot{FREE_TIER_LIMIT - jobs.length === 1 ? "" : "s"} remaining
+              </div>
+            )}
+            {jobs.length >= FREE_TIER_LIMIT && (
+              <div style={{fontSize:11,color:"var(--red)",fontWeight:600,textAlign:"right",marginBottom:6,paddingRight:2,cursor:"pointer"}} onClick={()=>setShowFreeTierModal(true)}>
+                Free limit reached · <span style={{textDecoration:"underline"}}>Upgrade to Pro</span>
+              </div>
+            )}
 
             <div className="filter-bar">
               {FILTERS.map(f=>(
@@ -2498,6 +2527,19 @@ export default function App() {
         {/* SETTINGS PANEL */}
         {showSettings&&(
           <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t} profile={businessProfile} onSaveProfile={handleSaveProfile}/>
+        )}
+
+        {/* FREE TIER CAP MODAL */}
+        {showFreeTierModal&&(
+          <div className="modal-overlay" onClick={()=>setShowFreeTierModal(false)}>
+            <div className="modal-box" onClick={e=>e.stopPropagation()}>
+              <div style={{fontSize:36,marginBottom:12}}>🔒</div>
+              <div className="mtitle">{t.freeTierTitle}</div>
+              <div className="msub" style={{marginTop:8,marginBottom:20,lineHeight:1.5}}>{t.freeTierMsg}</div>
+              <button className="fbtn" style={{background:"var(--accent)",color:"#0f1117",marginBottom:10}} onClick={()=>setShowFreeTierModal(false)}>{t.freeTierUpgrade}</button>
+              <button className="fbtn-sec" onClick={()=>setShowFreeTierModal(false)}>{t.freeTierDismiss}</button>
+            </div>
+          </div>
         )}
       </div>
       )}
