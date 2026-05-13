@@ -2244,6 +2244,12 @@ export default function App() {
                 </div>
               </div>
             )}
+            {(!parsed.recurring||parsed.recurring==="none")&&(
+              <>
+                <label className="flabel">{t.appointmentTime}</label>
+                <input className="finput" type="time" value={parsed.appointmentTime||""} onChange={e=>setParsed(p=>({...p,appointmentTime:e.target.value}))}/>
+              </>
+            )}
             <label className="flabel">{t.paymentDueDate}</label>
             <input className="finput" type="date" value={parsed.paymentDue||""} onChange={e=>setParsed(p=>({...p,paymentDue:e.target.value}))}/>
             <button className="fbtn" onClick={confirmSave}>{t.saveJob}</button>
