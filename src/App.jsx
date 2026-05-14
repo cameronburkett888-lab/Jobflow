@@ -2025,12 +2025,12 @@ export default function App() {
             </div>
 
             {/* FREE TIER COUNTER */}
-            {jobs.length >= 4 && jobs.length < FREE_TIER_LIMIT && (
+            {!isPro && jobs.length >= 4 && jobs.length < FREE_TIER_LIMIT && (
               <div style={{fontSize:11,color:"var(--yellow)",fontWeight:600,textAlign:"right",marginBottom:6,paddingRight:2}}>
                 {FREE_TIER_LIMIT - jobs.length} free slot{FREE_TIER_LIMIT - jobs.length === 1 ? "" : "s"} remaining
               </div>
             )}
-            {jobs.length >= FREE_TIER_LIMIT && (
+            {!isPro && jobs.length >= FREE_TIER_LIMIT && (
               <div style={{fontSize:11,color:"var(--red)",fontWeight:600,textAlign:"right",marginBottom:6,paddingRight:2,cursor:"pointer"}} onClick={()=>setShowFreeTierModal(true)}>
                 Free limit reached · <span style={{textDecoration:"underline"}}>Upgrade to Pro</span>
               </div>
