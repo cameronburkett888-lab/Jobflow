@@ -1066,18 +1066,38 @@ function OnboardingFlow({onComplete, t}) {
 }
 
 // ── SETTINGS PANEL ────────────────────────────────────────────────────────────
-function SettingsPanel({onClose, lang, setLang, t, profile, onSaveProfile}) {
+function SettingsPanel({onClose, lang, setLang, t, profile, onSaveProfile, userId}) {
   const [destConfirm, setDestConfirm] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [draft, setDraft] = useState({...profile});
+  const [cancelling, setCancelling] = useState(false);
   const logoRef = useRef(null);
 
   const handleSignOut = () => setDestConfirm({type:"signout"});
   const handleDelete  = () => setDestConfirm({type:"delete"});
   const handleCancel  = () => setDestConfirm({type:"cancel"});
-  const execDest = () => {
-    if(destConfirm.type==="cancel")  { setDestConfirm(null); setTimeout(()=>onClose({action:"cancelled"}),100); }
-    else if(destConfirm.type==="signout") { setDestConfirm(null); setTimeout(()=>onClose({action:"signout"}),100); }
+  const execDest = async () => {
+    if(destConfirm.type==="cancel") {
+      setCancelling(true);
+      try {
+        const res = await fetch("/api/cancel-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+        const data = await res.json();
+        if(data.success) {
+          setDestConfirm(null);
+          setTimeout(()=>onClose({action:"cancelled"}),100);
+        } else {
+          setCancelling(false);
+          alert("Could not cancel: " + (data.error || "Unknown error"));
+        }
+      } catch(e) {
+        setCancelling(false);
+        alert("Network error. Please try again.");
+      }
+    } else if(destConfirm.type==="signout") { setDestConfirm(null); setTimeout(()=>onClose({action:"signout"}),100); }
     else if(destConfirm.type==="delete")  { setDestConfirm(null); setTimeout(()=>onClose({action:"delete"}),100); }
   };
   const destCopy = destConfirm ? {
@@ -1243,7 +1263,7 @@ function SettingsPanel({onClose, lang, setLang, t, profile, onSaveProfile}) {
               <div className="confirm-icon">{destCopy.icon}</div>
               <div className="confirm-title">{destCopy.q}</div>
               <div className="confirm-msg">{destCopy.msg}</div>
-              <button className={destCopy.btnClass} onClick={execDest}>{destCopy.yes}</button>
+              <button className={destCopy.btnClass} onClick={execDest} disabled={cancelling}>{cancelling ? "Cancelling..." : destCopy.yes}</button>
               <button className="fbtn-sec" onClick={()=>setDestConfirm(null)}>{destConfirm.type==="cancel"?t.keepPlan:t.cancel}</button>
             </div>
           </div>
@@ -1891,7 +1911,7 @@ export default function App() {
   const handleSettingsClose = async (result) => {
     setShowSettings(false);
     if(!result) return;
-    if(result.action==="cancelled") setConfirm({icon:"✅",title:t.subCancelled,msg:t.subCancelledMsg});
+    if(result.action==="cancelled") { setIsPro(false); setConfirm({icon:"✅",title:t.subCancelled,msg:t.subCancelledMsg}); }
     if(result.action==="signout") { try { await signOut(auth); } catch(e){} }
     if(result.action==="delete") {
       try {
@@ -2568,7 +2588,7 @@ export default function App() {
 
         {/* SETTINGS PANEL */}
         {showSettings&&(
-          <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t} profile={businessProfile} onSaveProfile={handleSaveProfile}/>
+          <SettingsPanel onClose={handleSettingsClose} lang={lang} setLang={setLang} t={t} profile={businessProfile} onSaveProfile={handleSaveProfile} userId={user?.uid}/>
         )}
       </div>
       )}
