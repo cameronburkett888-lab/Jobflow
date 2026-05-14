@@ -25,7 +25,13 @@ export default async function handler(req, res) {
       ],
       subscription_data: {
         trial_period_days: 14,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'cancel',
+          },
+        },
       },
+      payment_method_collection: 'if_required',
       allow_promotion_codes: true,
       customer_email: email || undefined,
       metadata: { userId },
