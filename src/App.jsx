@@ -1480,6 +1480,27 @@ export default function App() {
     return unsub;
   }, []);
 
+  // ── STRIPE REDIRECT HANDLER ───────────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if(!sessionId || !user) return;
+    fetch("/api/verify-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if(data.success) {
+          setIsPro(true);
+          setConfirm({ icon: "🎉", title: "Welcome to Pro!", msg: "Your subscription is active. No more job limits — go get that money." });
+          window.history.replaceState({}, "", "/");
+        }
+      })
+      .catch(console.error);
+  }, [user]);
+
   const [jobs, setJobs] = useState([]);
   const [jobHistory, setJobHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -1502,14 +1523,18 @@ export default function App() {
     const loadProfile = async () => {
       try {
         const { getDoc } = await import("firebase/firestore");
-        const snap = await getDoc(doc(db, "users", user.uid, "meta", "profile"));
-        if(snap.exists()) {
-          setBusinessProfile(snap.data());
+        const [profileSnap, userSnap] = await Promise.all([
+          getDoc(doc(db, "users", user.uid, "meta", "profile")),
+          getDoc(doc(db, "users", user.uid)),
+        ]);
+        if(profileSnap.exists()) {
+          setBusinessProfile(profileSnap.data());
           setShowOnboarding(false);
         } else {
           setBusinessProfile(defaultProfile);
           setShowOnboarding(true);
         }
+        if(userSnap.exists() && userSnap.data().isPro) setIsPro(true);
       } catch(e) {
         setShowOnboarding(false);
       }
@@ -1581,7 +1606,22 @@ export default function App() {
   const [showFreeTierModal, setShowFreeTierModal] = useState(false);
 
   const FREE_TIER_LIMIT = 5;
-  const isAtFreeTierCap = () => jobs.length >= FREE_TIER_LIMIT;
+  const [isPro, setIsPro] = useState(false);
+  const isAtFreeTierCap = () => !isPro && jobs.length >= FREE_TIER_LIMIT;
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid, email: user.email }),
+      });
+      const data = await res.json();
+      if(data.url) window.location.href = data.url;
+    } catch(err) {
+      console.error("Checkout error:", err);
+    }
+  };
 
   // Live clock
   const [now, setNow] = useState(new Date());
@@ -2540,7 +2580,7 @@ export default function App() {
             <div style={{fontSize:40,marginBottom:14}}>🔒</div>
             <div className="mtitle" style={{justifyContent:"center"}}>{t.freeTierTitle}</div>
             <div className="msub" style={{marginTop:8,marginBottom:20,lineHeight:1.6}}>{t.freeTierMsg}</div>
-            <button className="fbtn" style={{background:"var(--accent)",color:"#0f1117",marginBottom:10}} onClick={()=>setShowFreeTierModal(false)}>{t.freeTierUpgrade}</button>
+            <button className="fbtn" style={{background:"var(--accent)",color:"#0f1117",marginBottom:10}} onClick={handleUpgrade}>{t.freeTierUpgrade}</button>
             <button className="fbtn-sec" onClick={()=>setShowFreeTierModal(false)}>{t.freeTierDismiss}</button>
           </div>
         </div>
